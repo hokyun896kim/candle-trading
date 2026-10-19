@@ -3,12 +3,13 @@ const H = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/jso
 function ymd(d) { return d.toISOString().slice(0, 10).replace(/-/g, ''); }
 exports.handler = async (event) => {
   const q = event.queryStringParameters || {};
-  const code = String(q.code || '').replace(/[^0-9A-Za-z]/g, '');
+  const code = String(q.code || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
   const tf = q.tf === 'week' ? 'week' : (q.tf === 'month' ? 'month' : 'day');
-  if (!/^\d{6}$/.test(code)) return { statusCode: 400, headers: H, body: JSON.stringify({ error: '종목코드 6자리가 필요합니다' }) };
+  const isIndex = code === 'KOSPI' || code === 'KOSDAQ';
+  if (!isIndex && !/^\d{6}$/.test(code)) return { statusCode: 400, headers: H, body: JSON.stringify({ error: '종목코드 6자리 또는 KOSPI/KOSDAQ' }) };
   const end = new Date(); end.setDate(end.getDate() + 1);
   const start = new Date(); start.setFullYear(start.getFullYear() - (tf === 'day' ? 3 : tf === 'week' ? 10 : 25));
-  const url = `https://api.stock.naver.com/chart/domestic/item/${code}/${tf}?startDateTime=${ymd(start)}0000&endDateTime=${ymd(end)}0000`;
+  const url = `https://api.stock.naver.com/chart/domestic/${isIndex ? 'index' : 'item'}/${code}/${tf}?startDateTime=${ymd(start)}0000&endDateTime=${ymd(end)}0000`;
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } });
     if (!r.ok) return { statusCode: 502, headers: H, body: JSON.stringify({ error: `네이버 응답 ${r.status}` }) };

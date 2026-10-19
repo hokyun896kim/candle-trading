@@ -89,3 +89,15 @@ table.map th{color:var(--text3);font-weight:600;font-size:12px}
 .seg{display:flex;background:var(--bg2);border-radius:12px;padding:4px;margin:10px 0}
 .seg button{flex:1;border:0;background:none;padding:9px;border-radius:9px;font-weight:700;color:var(--text3);cursor:pointer}
 .seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+.live{background:#FFF6DB;border-radius:12px;padding:10px 12px;margin-top:10px}
+.live .k{font-size:11px;color:#9A6B00;font-weight:700}
+.live .t{font-size:13px;color:#4D5159;margin-top:3px;line-height:1.5}
+.tag.ac{background:#FFE4D6;color:#B23A00}
+.pos{color:var(--red)}.neg{color:var(--blue)}
+.pstat{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--text2);margin:6px 0 8px}
+.pstat b{font-weight:800}
+table.perf{width:100%;border-collapse:collapse;font-size:12.5px}
+table.perf th{font-size:11px;color:var(--text3);font-weight:600;text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}
+table.perf td{padding:6px 4px;border-bottom:1px solid var(--line)}
+table.perf td small{color:var(--text3);font-size:10.5px}

@@ -17,7 +17,7 @@
     clearTimeout(timer);
     const v = q.value.trim();
     if (!v) { sugg.style.display = 'none'; return; }
-    if (/^\d{6}$/.test(v)) { sugg.style.display = 'none'; return; }
+    if (/^\d{6}$/.test(v) || INDEX[v.toUpperCase()]) { sugg.style.display = 'none'; return; }
     timer = setTimeout(async () => {
       try {
         const r = await fetch('/api/search?q=' + encodeURIComponent(v));
@@ -36,6 +36,7 @@
   q.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const v = q.value.trim();
+      if (INDEX[v.toUpperCase()]) { sugg.style.display = 'none'; run(INDEX[v.toUpperCase()], v.toUpperCase() === 'KOSDAQ' || v === '코스닥' ? '코스닥' : '코스피'); return; }
       if (/^\d{6}$/.test(v)) { sugg.style.display = 'none'; run(v, v); }
       else if (sugg.style.display === 'block') { const d = sugg.querySelector('div[data-code]'); if (d) { sugg.style.display = 'none'; q.value = d.dataset.name; run(d.dataset.code, d.dataset.name); } }
     }
@@ -66,6 +67,7 @@
     const today = kstYMD(k);
     const mins = k.getUTCHours() * 60 + k.getUTCMinutes();
     if (tf === 'day') return lastT === today && mins < 15 * 60 + 40;
+    if (tf === 'month') return lastT.slice(0, 6) === today.slice(0, 6); // 이번 달은 월말 종가 전까지 진행 중
     // week: localDate = 주 시작(일요일). 그 주 금요일 15:40 KST 전이면 진행 중
     const y = +lastT.slice(0, 4), m = +lastT.slice(4, 6) - 1, d = +lastT.slice(6, 8);
     const fri = new Date(Date.UTC(y, m, d + 5, 15, 40)); // 일요일+5 = 금요일
@@ -74,79 +76,121 @@
 
   // ---- 실행 ----
   let charts = [];
+  const INDEX = { '코스피': 'KOSPI', 'KOSPI': 'KOSPI', '코스닥': 'KOSDAQ', 'KOSDAQ': 'KOSDAQ' };
+  async function getBars(code, tf) {
+    const r = await fetch(`/api/ohlc?code=${code}&tf=${tf}`); const j = await r.json();
+    if (j.error) throw new Error(j.error); if (!j.bars || !j.bars.length) throw new Error('데이터 없음: ' + code + ' ' + tf);
+    return j.bars;
+  }
+  // 확정 판정(진행 중 봉 제외) + 진행 중 판정
+  function judge(tf, bars) {
+    const partial = isPartial(tf, bars[bars.length - 1].t);
+    const live = E.analyze(bars);
+    const fixed = partial && bars.length > 2 ? E.analyze(bars.slice(0, -1)) : live;
+    return { partial, live, fixed, bars };
+  }
   async function run(code, name) {
     const out = $('#result');
-    out.innerHTML = '<div class="card loading">일봉·주봉 불러오는 중…</div>';
+    out.innerHTML = '<div class="card loading">월봉·주봉·일봉 불러오는 중…</div>';
     charts.forEach(c => { try { c.remove(); } catch {} }); charts = [];
     try {
-      const [dR, wR] = await Promise.all([fetch(`/api/ohlc?code=${code}&tf=day`), fetch(`/api/ohlc?code=${code}&tf=week`)]);
-      const dJ = await dR.json(), wJ = await wR.json();
-      if (dJ.error || wJ.error) throw new Error(dJ.error || wJ.error);
-      if (!dJ.bars.length || !wJ.bars.length) throw new Error('데이터가 없습니다. 종목코드를 확인하세요.');
-      const daily = E.analyze(dJ.bars), weekly = E.analyze(wJ.bars);
-      const comb = E.combine(daily, weekly);
+      const isIdx = /^(KOSPI|KOSDAQ)$/.test(code);
+      const [dB, wB, mB, kB] = await Promise.all([getBars(code, 'day'), getBars(code, 'week'), getBars(code, 'month'), isIdx ? null : getBars('KOSPI', 'month')]);
+      const D = judge('day', dB), W = judge('week', wB), M = judge('month', mB);
+      const K = kB ? judge('month', kB) : null;
       pushRecent(code, name);
-      render(out, { code, name, daily, weekly, comb, dBars: dJ.bars, wBars: wJ.bars });
+      render(out, { code, name, D, W, M, K });
     } catch (e) {
-      out.innerHTML = `<div class="card"><div class="err">불러오기 실패: ${e.message}</div><p class="note">로컬에서 열었으면 /api 가 없어서 실패한다. 넷리파이에 올리거나 <code>netlify dev</code>로 실행하면 된다.</p></div>`;
+      out.innerHTML = `<div class="card"><div class="err">불러오기 실패: ${e.message}</div><p class="note">로컬 파일로 열었으면 /api 가 없어서 실패한다. candle-trading.netlify.app 에서 열어라.</p></div>`;
     }
   }
 
   function dateK(t) { return `${t.slice(2, 4)}.${t.slice(4, 6)}.${t.slice(6, 8)}`; }
+  function pct(n) { return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
 
   function render(out, R) {
-    const { daily, weekly, comb } = R;
-    const dPart = isPartial('day', daily.lastBar.t), wPart = isPartial('week', weekly.lastBar.t);
+    const { D, W, M, K } = R;
+    // 종합 판정은 확정 봉 기준, 진행 중 봉 기준은 참고로
+    const comb = E.combine(D.fixed, W.fixed, M.fixed);
+    const combLive = (D.partial || W.partial || M.partial) ? E.combine(D.live, W.live, M.live) : null;
+    const kg = K ? E.monthlyGate(K.fixed) : null;
+    const kgLive = K ? E.monthlyGate(K.live) : null;
     let html = `
       <section class="card verdict ${comb.code}">
         <div class="name">${R.name} · ${R.code}</div>
         <div class="big">${comb.title}</div>
         <p>${comb.detail}</p>
-        ${(dPart || wPart) ? `<p style="font-size:12px;opacity:.9">⏳ ${dPart ? '일봉 장중 진행 중 (15:30 종가로 확정)' : ''}${dPart && wPart ? ' · ' : ''}${wPart ? '이번 주봉 진행 중 (금요일 종가로 확정)' : ''}</p>` : ''}
+        <div style="margin-top:8px">
+          <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">종목 월봉: ${comb.gate.label}</span>
+          ${kg ? `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">코스피 월봉: ${kg.label}${kgLive && kgLive.code !== kg.code ? ' → 이번 달 진행: ' + kgLive.label : ''}</span>` : ''}
+        </div>
+        ${combLive && (combLive.title !== comb.title) ? `<p style="font-size:12.5px;margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.18);border-radius:10px">⏳ 진행 중 봉 그대로 끝나면: <b>${combLive.title}</b> — ${combLive.detail}</p>` : ''}
+        <p style="font-size:11.5px;opacity:.85;margin-top:8px">확정 봉 기준(일봉 15:30·주봉 금요일·월봉 월말 종가). ${D.partial ? '일봉 장중' : ''}${D.partial && (W.partial || M.partial) ? ' · ' : ''}${W.partial ? '이번 주봉 진행 중' : ''}${(D.partial || W.partial) && M.partial ? ' · ' : ''}${M.partial ? '이번 월봉 진행 중' : ''}</p>
       </section>
-      ${panel('주봉 · 상태', 'w', weekly, wPart)}
-      ${panel('일봉 · 타이밍', 'd', daily, dPart)}
-      <p class="note">판정은 전부 종가 기준·꼬리 포함·합봉 적용. 데이터: 네이버 금융. 거래정지·액면분할 종목은 구간이 왜곡될 수 있으니 차트로 한 번 더 확인.</p>`;
+      ${panel('월봉 · 시황 게이트', 'm', M)}
+      ${panel('주봉 · 상태', 'w', W)}
+      ${panel('일봉 · 타이밍', 'd', D)}
+      <p class="note">판정은 전부 종가 기준·꼬리 포함·합봉 적용. 데이터: 네이버 금융. 거래정지·액면분할 종목은 구간이 왜곡될 수 있으니 차트로 한 번 더 확인. 코스피 지수 자체를 보려면 '코스피'라고 쳐라.</p>`;
     out.innerHTML = html;
-    drawChart('chart-w', R.wBars, weekly);
-    drawChart('chart-d', R.dBars, daily);
+    drawChart('chart-m', M.bars, M.live, 60);
+    drawChart('chart-w', W.bars, W.live, 120);
+    drawChart('chart-d', D.bars, D.live, 130);
   }
 
-  function panel(title, key, S, partial) {
-    const st = S.state, last = S.lastBar;
+  function stateLine(S) {
+    const st = S.state;
     const stTxt = st === 'up' ? '상승 (게이트 열림)' : st === 'down' ? '하락 (게이트 닫힘)' : '판정 대기';
-    const dirTxt = S.lastDir === 'bull' ? `양봉 ${S.curBlock.n}개째` : `음봉 ${S.curBlock.n}개째`;
-    let action, actionChip;
+    let action, chip;
     if (st === 'up') {
       if (S.lastDir === 'bear') {
-        if (S.doubleTop) { action = '쌍봉 경고 — 추가매수 중단, 보유선 지키는지만 본다'; actionChip = 'y'; }
-        else if (S.buyOK) { action = S.firstBear ? '첫 음봉 — 매수 자리' : '눌림 음봉 — 매수 자리 (종가 낮아지면 더)'; actionChip = 'r'; }
-        else { action = '보유선 이탈 임박'; actionChip = 'y'; }
-      } else { action = '양봉 진행 중 — 보유. 다음 음봉에 매수'; actionChip = 'g'; }
+        if (S.doubleTop) { action = '쌍봉 경고 — 추가매수 중단, 보유선만 본다'; chip = 'y'; }
+        else if (S.buyOK) { action = S.firstBear ? '첫 음봉 — 매수 자리' : '눌림 음봉 — 매수 자리'; chip = 'r'; }
+        else { action = '보유선 이탈'; chip = 'y'; }
+      } else { action = '양봉 진행 — 보유, 다음 음봉에 매수'; chip = 'g'; }
     } else if (st === 'down') {
-      action = S.lastDir === 'bull' ? '양봉 반등 — 매도 자리' : '하락 중 — 양봉 기다려 매도';
-      actionChip = 'b';
-    } else { action = '전환 신호 없음'; actionChip = ''; }
-    const evs = S.events.filter(e => e.type === 'up' || e.type === 'down' || e.type === 'doubleTop').slice(-6).reverse();
+      if (S.lastDir === 'bull') { action = '양봉 반등 — 매도 자리'; chip = 'b'; }
+      else { action = S.accel ? '⚠ 하락 가속 — 더 큰 음봉 경계' : '하락 중 — 양봉 기다려 매도'; chip = S.accel ? 'y' : 'b'; }
+    } else { action = '전환 신호 없음'; chip = ''; }
+    return { stTxt, action, chip };
+  }
+
+  function panel(title, key, J) {
+    const S = J.fixed, L = J.live, last = S.lastBar;
+    const f = stateLine(S), l = stateLine(L);
+    const dirTxt = (S.lastDir === 'bull' ? '양봉' : '음봉') + ` ${S.curBlock.n}개째`;
+    const evs = S.events.filter(e => ['up', 'down', 'doubleTop', 'accel'].includes(e.type)).slice(-6).reverse();
+    const perf = E.performance(J.bars, L, 8);
+    const kv = S.state === 'up'
+      ? `<div class="box"><div class="k">보유선 (직전 양봉블록 저점)</div><div class="v" style="color:var(--orange-deep)">${E.fmt(S.holdLine)}</div><div class="s">${S.holdLineNext != null && S.holdLineNext !== S.holdLine ? '다음 음봉부터 ' + E.fmt(S.holdLineNext) : (S.holdLine != null ? '여유 ' + pct((last.c / S.holdLine - 1) * 100) : '')}</div></div>`
+      : `<div class="box"><div class="k">전환선 (직전 음봉블록 고점)</div><div class="v" style="color:var(--blue)">${E.fmt(S.breakLine)}</div><div class="s">${S.breakLine != null ? '양봉 종가가 넘어야 ' + pct((S.breakLine / last.c - 1) * 100) : ''}</div></div>`;
+    const liveBar = L.lastBar;
+    const liveBlock = J.partial ? `
+        <div class="live">
+          <div class="k">⏳ 진행 중 봉 (${dateK(liveBar.t)} · ${L.lastDir === 'bull' ? '양봉' : '음봉'} · 종가 ${E.fmt(liveBar.c)})</div>
+          <div class="t">이대로 끝나면 → <b>${l.stTxt}</b> · ${l.action}${L.state === 'up' && L.holdLine != null ? ` · 보유선 ${E.fmt(L.holdLine)}` : ''}${L.state === 'down' && L.breakLine != null ? ` · 전환선 ${E.fmt(L.breakLine)}` : ''}</div>
+        </div>` : '';
+    const perfRows = perf.trades.map(t => `<tr><td>${dateK(t.et)}</td><td>${dateK(t.xt)}${t.openTrade ? '<small> ' + t.note + '</small>' : ''}</td><td class="${t.pct >= 0 ? 'pos' : 'neg'}">${pct(t.pct)}</td><td>${t.bars}봉</td></tr>`).join('');
+    const perfStat = perf.stats ? `<div class="pstat"><span>신호 ${perf.total}회</span><span>승률 <b>${perf.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${perf.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.avg)}</b></span><span>중앙 <b class="${perf.stats.med >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.med)}</b></span><span>평균 ${perf.stats.avgBars.toFixed(0)}봉</span></div>` : '<div class="pstat"><span>완료된 거래 없음</span></div>';
     return `
       <section class="card">
         <h2>${title}</h2>
-        <div class="state"><span class="dot ${st}"></span><b>${stTxt}</b><span class="chip">${dirTxt}</span>${partial ? '<span class="chip y">진행 중</span>' : ''}</div>
-        <span class="chip ${actionChip}">${action}</span>
+        <div class="state"><span class="dot ${S.state}"></span><b>${f.stTxt}</b><span class="chip">${dirTxt}</span></div>
+        <span class="chip ${f.chip}">${f.action}</span>
         <div class="kv">
-          <div class="box"><div class="k">종가 (${dateK(last.t)})</div><div class="v">${E.fmt(last.c)}</div><div class="s">${S.lastDir === 'bull' ? '양봉' : '음봉'} · 저 ${E.fmt(last.l)} / 고 ${E.fmt(last.h)}</div></div>
-          ${st === 'up'
-            ? `<div class="box"><div class="k">보유선 (직전 양봉블록 저점)</div><div class="v" style="color:var(--orange-deep)">${E.fmt(S.holdLine)}</div><div class="s">${S.holdLineNext != null ? '다음 음봉부터 ' + E.fmt(S.holdLineNext) : (S.holdLine != null ? '여유 ' + ((last.c / S.holdLine - 1) * 100).toFixed(1) + '%' : '')}</div></div>`
-            : `<div class="box"><div class="k">전환선 (직전 음봉블록 고점)</div><div class="v" style="color:var(--blue)">${E.fmt(S.breakLine)}</div><div class="s">${S.breakLine != null ? '양봉 종가가 넘어야 ' + ((S.breakLine / last.c - 1) * 100).toFixed(1) + '%' : ''}</div></div>`}
+          <div class="box"><div class="k">확정 종가 (${dateK(last.t)})</div><div class="v">${E.fmt(last.c)}</div><div class="s">${S.lastDir === 'bull' ? '양봉' : '음봉'} · 저 ${E.fmt(last.l)} / 고 ${E.fmt(last.h)}</div></div>
+          ${kv}
         </div>
+        ${liveBlock}
         <div id="chart-${key}" class="chart"></div>
-        <ul class="ev">${evs.map(e => `<li><span class="d">${dateK(e.t)}</span><span class="tag ${e.type === 'up' ? 'up' : e.type === 'down' ? 'down' : 'dt'}">${e.type === 'up' ? '상승 전환' : e.type === 'down' ? '하락 전환' : '쌍봉 경고'}</span><span>${e.type === 'up' ? '양봉 종가 ' + E.fmt(e.price) + ' > 음봉 고점 ' + E.fmt(e.level) : e.type === 'down' ? '음봉 종가 ' + E.fmt(e.price) + ' < 양봉 저점 ' + E.fmt(e.level) : '음봉 고점이 ' + E.fmt(e.level) + ' 못 넘고 낮아짐'}</span></li>`).join('') || '<li><span class="d">-</span>신호 없음</li>'}</ul>
+        <ul class="ev">${evs.map(e => `<li><span class="d">${dateK(e.t)}</span><span class="tag ${e.type === 'up' ? 'up' : e.type === 'down' ? 'down' : e.type === 'accel' ? 'ac' : 'dt'}">${e.type === 'up' ? '상승 전환' : e.type === 'down' ? '하락 전환' : e.type === 'accel' ? '하락 가속' : '쌍봉 경고'}</span><span>${e.type === 'up' ? '양봉 종가 ' + E.fmt(e.price) + ' > 음봉 고점 ' + E.fmt(e.level) : e.type === 'down' ? '음봉 종가 ' + E.fmt(e.price) + ' < 양봉 저점 ' + E.fmt(e.level) : e.type === 'accel' ? '양봉이 ' + E.fmt(e.level) + ' 못 넘고 다시 밀림' : '음봉 고점이 ' + E.fmt(e.level) + ' 못 넘고 낮아짐'}</span></li>`).join('') || '<li><span class="d">-</span>신호 없음</li>'}</ul>
+        <h3 style="margin-top:14px">과거 신호 성과 <span class="note" style="display:inline">상승전환 종가 매수 → 하락전환 뒤 첫 양봉 종가 매도</span></h3>
+        ${perfStat}
+        <table class="perf"><tr><th>매수</th><th>매도</th><th>수익</th><th>보유</th></tr>${perfRows || '<tr><td colspan="4">-</td></tr>'}</table>
       </section>`;
   }
 
-  function drawChart(id, bars, S) {
+  function drawChart(id, bars, S, N) {
     const el = document.getElementById(id); if (!el || !window.LightweightCharts) return;
-    const N = id.endsWith('w') ? 120 : 130;
     const data = bars.slice(-N).map(b => ({ time: `${b.t.slice(0, 4)}-${b.t.slice(4, 6)}-${b.t.slice(6, 8)}`, open: b.o, high: b.h, low: b.l, close: b.c }));
     const chart = LightweightCharts.createChart(el, {
       layout: { background: { color: '#fff' }, textColor: '#868B94', fontSize: 11 },
