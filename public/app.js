@@ -74,6 +74,24 @@
     return k.getTime() < fri.getTime();
   }
 
+  // ---- 시총 순위표 ----
+  let RANKS = null;
+  fetch('ranks.json').then(r => r.json()).then(j => { RANKS = j; }).catch(() => {});
+  // 그룹 분류 + 10년 캔들 단독 백테스트(431종목, 수수료 없음) 요약
+  const GROUP_STATS = {
+    'KOSPI 대형': { label: '코스피 대형 (1~100위)', tone: 'g', month: '승률 48% · 평균 +33% · 손익비 5.1', week: '승률 43% · 손익비 2.5', day: '승률 42% · 손익비 1.5', note: '추세가 길어 캔들 단독이 제일 잘 먹히는 구간' },
+    'KOSPI 중형': { label: '코스피 중형 (101~300위)', tone: 'y', month: '승률 42% · 평균 +14% · 손익비 2.5', week: '승률 42% · 손익비 1.9', day: '승률 41% · 손익비 1.3', note: '⚠ 추세 짧고 폭 작아 휩소 비용만 남는 구간 — 캔들 단독 손익비가 대형의 절반' },
+    'KOSPI 소형': { label: '코스피 소형 (301위~)', tone: 'y', month: '미검증', week: '미검증', day: '미검증', note: '⚠ 백테스트 범위 밖. 거래정지·상폐 위험까지 겹친다' },
+    'KOSDAQ 상위': { label: '코스닥 상위 (1~150위)', tone: 'g', month: '승률 46% · 평균 +41% · 손익비 4.5', week: '승률 42% · 손익비 2.8', day: '승률 41% · 손익비 1.6', note: '터지면 크게 터져 월봉 손익비 높음. 대신 변동성도 크다' },
+    'KOSDAQ 기타': { label: '코스닥 (151위~)', tone: 'y', month: '미검증', week: '미검증', day: '미검증', note: '⚠ 백테스트 범위 밖. 상폐·정지 위험 구간' },
+  };
+  function groupOf(code) {
+    if (code === 'KOSPI' || code === 'KOSDAQ') return null;
+    const r = RANKS && RANKS.ranks && RANKS.ranks[code]; if (!r) return null;
+    const g = r.m === 'KOSPI' ? (r.r <= 100 ? 'KOSPI 대형' : r.r <= 300 ? 'KOSPI 중형' : 'KOSPI 소형') : (r.r <= 150 ? 'KOSDAQ 상위' : 'KOSDAQ 기타');
+    return { ...GROUP_STATS[g], key: g, rank: r.r, market: r.m, asof: RANKS.asof };
+  }
+
   // ---- 실행 ----
   let charts = [];
   const INDEX = { '코스피': 'KOSPI', 'KOSPI': 'KOSPI', '코스닥': 'KOSDAQ', 'KOSDAQ': 'KOSDAQ' };
@@ -127,6 +145,7 @@
         ${combLive && (combLive.title !== comb.title) ? `<p style="font-size:12.5px;margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.18);border-radius:10px">⏳ 진행 중 봉 그대로 끝나면: <b>${combLive.title}</b> — ${combLive.detail}</p>` : ''}
         <p style="font-size:11.5px;opacity:.85;margin-top:8px">확정 봉 기준(일봉 15:30·주봉 금요일·월봉 월말 종가). ${D.partial ? '일봉 장중' : ''}${D.partial && (W.partial || M.partial) ? ' · ' : ''}${W.partial ? '이번 주봉 진행 중' : ''}${(D.partial || W.partial) && M.partial ? ' · ' : ''}${M.partial ? '이번 월봉 진행 중' : ''}</p>
       </section>
+      ${groupCard(groupOf(R.code))}
       ${panel('월봉 · 시황 게이트', 'm', M)}
       ${panel('주봉 · 상태', 'w', W)}
       ${panel('일봉 · 타이밍', 'd', D)}
@@ -135,6 +154,17 @@
     drawChart('chart-m', M.bars, M.live, 60);
     drawChart('chart-w', W.bars, W.live, 120);
     drawChart('chart-d', D.bars, D.live, 130);
+  }
+
+  function groupCard(G) {
+    if (!G) return '';
+    return `
+      <section class="card">
+        <div class="state" style="margin:0 0 6px"><span class="chip ${G.tone}">${G.label}</span><span class="chip">${G.market} 시총 ${G.rank}위</span></div>
+        <p style="margin:4px 0 8px"><b>${G.note}</b></p>
+        <div class="pstat" style="margin:0"><span>월봉 ${G.month}</span><span>주봉 ${G.week}</span><span>일봉 ${G.day}</span></div>
+        <p class="note">같은 그룹 10년 캔들 단독 백테스트(상승전환 매수→하락전환 뒤 양봉 매도, 수수료 없음, 생존편향 있음). 순위 기준일 ${G.asof}.</p>
+      </section>`;
   }
 
   function stateLine(S) {
