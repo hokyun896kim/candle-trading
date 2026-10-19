@@ -16,12 +16,12 @@
     if (f.state === 'up') return 'hold';
     return 'out';
   }
-  const LABEL = { turn: '🔥 전환 임박', end: '⛔ 시세 종료 임박', buy: '매수 자리', hold: '보유 중', out: '하락·현금' };
+  const LABEL = { turn: '🔥 전환 임박', end: '⛔ 시세 종료 임박', buy: '🎯 매수 자리', hold: '보유 중', out: '하락·현금' };
   const TONE = { turn: 'o', end: 'b', buy: 'r', hold: 'g', out: '' };
   const NOTE = {
     turn: '이번 달 양봉이 전환선(직전 음봉 고점) 위에 있다. 월말 종가로 넘으면 게이트 열림. 431종목 10년 실측: 이 자리에서 사면 <b>월말 확정률 49%</b>, 실패 시 월말 정리 평균 <b>-6.5%</b>, 대신 성공분은 제일 싸게 사서 손익비 5.6(확정 뒤 매수 3.8). 반은 틀린다는 걸 알고 <b>미확정이면 월말에 무조건 정리</b>.',
     end: '이번 달 음봉이 보유선(직전 양봉 저점) 아래에 있다. 월말 종가로 깨지면 하락 전환 = 매도 신호. 강사 규칙은 그 음봉에 던지지 않고 <b>다음 양봉 반등에 판다</b>. 전환선을 다시 넘기 전까지 반등마다 매도.',
-    buy: '확정 월봉 상승 + 이번 달 음봉이 보유선 위에서 눌림. 강사가 "제일 좋다"고 한 자리. 첫 음봉이 위로 정렬.',
+    buy: '확정 월봉 상승 + 이번 달 음봉이 보유선 위에서 눌림. <b>월말에 음봉으로 끝나면 그 종가가 매수가</b>. 강사가 "제일 좋다"고 한 자리고, 실측 손익비도 확정 매수 중 최고(4.0). 첫 음봉이 위로 정렬.',
     hold: '확정 상승 상태. 양봉 진행 중이면 다음 음봉 대기, 쌍봉 경고면 추가매수 중단.',
     all: ''
   };
@@ -37,7 +37,7 @@
     if (mk !== 'ALL') rows = rows.filter(r => r.market === mk);
     if (q) rows = rows.filter(r => r.name.includes(q) || r.code.includes(q));
     if (filter !== 'all') rows = rows.filter(r => r.cls === filter);
-    const order = { turn: 0, end: 1, buy: 2, hold: 3, out: 4 };
+    const order = { turn: 0, buy: 1, end: 2, hold: 3, out: 4 };
     rows.sort((a, b) => order[a.cls] - order[b.cls] || (a.cls === 'buy' ? (b.m.live.first - a.m.live.first) : 0) || (a.cls === 'turn' ? margin(b) - margin(a) : 0) || a.rank - b.rank);
     $('#scan-note').innerHTML = NOTE[filter] ? `<div class="live" style="background:${filter === 'turn' ? '#FFF1E6' : filter === 'end' ? '#EAF2FF' : 'var(--bg2)'}"><div class="t">${NOTE[filter]}</div></div>` : '';
     const counts = DATA.rows.reduce((o, r) => { const c = classify(r); o[c] = (o[c] || 0) + 1; return o; }, {});

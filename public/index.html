@@ -163,13 +163,13 @@
 <div class="wrap">
   <section class="card">
     <h2>월봉 스캔 — 코스피 200 + 코스닥 150</h2>
-    <p>평일 장 마감 뒤 자동 갱신. 월봉 캔들 규칙으로 <b>지금 시세가 시작되려는 놈</b>(전환 임박)과 <b>끝나려는 놈</b>(시세 종료 임박)을 먼저 보여주고, 그 다음 확정 상승 중 눌림(매수 자리)·보유 중 순서.</p>
+    <p>평일 장 마감 뒤 자동 갱신. 월봉 캔들 규칙으로 세 가지를 순서대로 본다 — <b>🔥 시세가 시작되려는 놈</b>(전환 임박) → <b>🎯 상승 중 월말 음봉 눌림</b>(매수 자리, 손익비 최고) → <b>⛔ 끝나려는 놈</b>(시세 종료 임박). 그 뒤는 보유 중.</p>
     <div id="scan-meta" class="note"></div>
     <div id="scan-kospi"></div>
     <div class="seg" id="scan-seg" style="flex-wrap:wrap">
       <button class="on" data-f="turn">🔥 전환 임박</button>
+      <button data-f="buy">🎯 매수 자리</button>
       <button data-f="end">⛔ 시세 종료 임박</button>
-      <button data-f="buy">매수 자리</button>
       <button data-f="hold">보유 중</button>
       <button data-f="all">전체</button>
     </div>
