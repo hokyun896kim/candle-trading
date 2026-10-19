@@ -18,6 +18,8 @@ async function list(mkt, n) {
   }
   return out.slice(0, n);
 }
+const ETF_RE = /^(KODEX|TIGER|ACE|KBSTAR|RISE|SOL|HANARO|PLUS|KOSEF|ARIRANG|TIMEFOLIO|KoAct|WON|1Q|BNK|HK|KIWOOM|DAISHIN|UNICORN|마이티|히어로즈|파워|TREX|FOCUS|KCGI|VITA|WOORI|ITF)\b|스팩|SPAC|ETN|ETF/i;
+function isEtf(n) { return ETF_RE.test(n); }
 function ymd(d) { return d.toISOString().slice(0, 10).replace(/-/g, ''); }
 async function bars(code, tf, years) {
   const end = new Date(); end.setDate(end.getDate() + 1);
@@ -54,7 +56,7 @@ async function one(s) {
 async function pool(items, fn, k) { const out = []; let i = 0; await Promise.all(Array.from({ length: k }, async () => { while (i < items.length) { const it = items[i++]; try { out.push(await fn(it)); } catch (e) { out.push(null); } } })); return out; }
 
 (async () => {
-  const universe = [...await list('KOSPI', 200), ...await list('KOSDAQ', 150)].filter(s => /^\d{6}$/.test(s.code) && !/스팩|SPAC/.test(s.name));
+  const universe = [...await list('KOSPI', 200), ...await list('KOSDAQ', 150)].filter(s => /^\d{6}$/.test(s.code) && !isEtf(s.name));
   console.log('universe', universe.length);
   const rows = (await pool(universe, one, 8)).filter(Boolean);
   const k = await bars('KOSPI', 'month', 12).catch(() => null);

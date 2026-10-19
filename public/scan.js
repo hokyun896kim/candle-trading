@@ -37,7 +37,7 @@
 
   function card(r) {
     const f = r.m.fix, l = r.m.live, w = r.w.fix;
-    const grp = r.market === 'KOSPI' ? (r.rank <= 100 ? '대형' : '중형') : '코스닥';
+    const grp = r.market === 'KOSPI' ? (r.rank <= 100 ? '대형' : '중형') : '상위';
     const gTone = grp === '중형' ? 'y' : '';
     let line;
     if (r.cls === 'buy') line = `이번 달 ${l.first ? '<b>첫 음봉</b>' : '음봉 ' + l.n + '개째'} · 종가 ${E.fmt(l.close)} · 보유선 ${E.fmt(l.hold)} (여유 ${((l.close / l.hold - 1) * 100).toFixed(1)}%)${l.dt ? ' · ⚠ 쌍봉' : ''}`;
