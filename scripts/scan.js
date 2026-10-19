@@ -18,7 +18,7 @@ async function list(mkt, n) {
   }
   return out.slice(0, n);
 }
-const ETF_RE = /^(KODEX|TIGER|ACE|KBSTAR|RISE|SOL|HANARO|PLUS|KOSEF|ARIRANG|TIMEFOLIO|KoAct|WON|1Q|BNK|HK|KIWOOM|DAISHIN|UNICORN|마이티|히어로즈|파워|TREX|FOCUS|KCGI|VITA|WOORI|ITF)\b|스팩|SPAC|ETN|ETF/i;
+const ETF_RE = /^(KODEX|TIGER|ACE|KBSTAR|RISE|SOL|HANARO|PLUS|KOSEF|ARIRANG|TIMEFOLIO|KoAct|WON|1Q|BNK|HK|KIWOOM|DAISHIN|UNICORN|마이티|히어로즈|파워|TREX|FOCUS|KCGI|VITA|WOORI|ITF|TIME|SAMSUNG|MIRAE|KB|KODEX)\b|스팩|SPAC|ETN|ETF/i;
 function isEtf(n) { return ETF_RE.test(n); }
 function ymd(d) { return d.toISOString().slice(0, 10).replace(/-/g, ''); }
 async function bars(code, tf, years) {
