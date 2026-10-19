@@ -105,7 +105,14 @@
     const partial = isPartial(tf, bars[bars.length - 1].t);
     const live = E.analyze(bars);
     const fixed = partial && bars.length > 2 ? E.analyze(bars.slice(0, -1)) : live;
-    return { partial, live, fixed, bars };
+    return { partial, live, fixed, bars, act: effective(fixed, live, partial) };
+  }
+  // 행동 판정용: 상태(상승/하락)는 확정 봉, 행동 플래그(매수/반등매도/가속/쌍봉)는 진행 중 봉 기준.
+  // 확정 상태와 진행 상태가 다르면(전환 임박·종료 임박) 행동 플래그는 전부 끈다 — 월말/금요일 종가 확인 전.
+  function effective(fixed, live, partial) {
+    if (!partial) return fixed;
+    if (fixed.state === live.state) return live;
+    return { ...fixed, lastDir: live.lastDir, curBlock: live.curBlock, lastBar: live.lastBar, buyOK: false, firstBear: false, doubleTop: false, sellBounce: false, accel: false, pending: true };
   }
   async function run(code, name) {
     const out = $('#result');
@@ -129,7 +136,16 @@
   function render(out, R) {
     const { D, W, M, K } = R;
     // 종합 판정은 확정 봉 기준, 진행 중 봉 기준은 참고로
-    const comb = E.combine(D.fixed, W.fixed, M.fixed);
+    let comb = E.combine(D.act, W.act, M.act);
+    if (M.act.pending) {
+      comb = M.live.state === 'up'
+        ? { ...comb, code: 'nobuy', title: '⏳ 월봉 전환 임박 — 월말 종가 확인', detail: `확정 월봉은 하락인데 이번 달 양봉이 전환선 ${E.fmt(M.fixed.breakLine)} 위에 있다. 월말 종가로 넘으면 게이트 열리고 다음 달부터 음봉마다 매수. 못 넘으면 그냥 반등. 지금 사면 실측 확정률 49%·실패 시 -6.5%.` }
+        : { ...comb, code: 'nobuy', title: '⏳ 월봉 시세 종료 임박 — 월말 종가 확인', detail: `확정 월봉은 상승인데 이번 달 음봉이 보유선 ${E.fmt(M.live.holdLine)} 아래에 있다. 월말 종가로 깨지면 하락 전환 → 다음 양봉 반등에 매도. 신규 매수는 중단.` };
+    } else if (W.act.pending && M.act.state !== 'down') {
+      comb = W.live.state === 'up'
+        ? { ...comb, title: '⏳ 주봉 전환 임박 — 금요일 종가 확인', detail: `주봉 양봉이 전환선 ${E.fmt(W.fixed.breakLine)} 위. 금요일 종가로 넘으면 일봉 매매 허용. ` + comb.detail }
+        : { ...comb, title: '⏳ 주봉 보유선 이탈 중 — 금요일 종가 확인', detail: `주봉 음봉이 보유선 ${E.fmt(W.live.holdLine)} 아래. 금요일 종가로 깨지면 신규 매수 중단. ` + comb.detail };
+    }
     const combLive = (D.partial || W.partial || M.partial) ? E.combine(D.live, W.live, M.live) : null;
     const kg = K ? E.monthlyGate(K.fixed) : null;
     const kgLive = K ? E.monthlyGate(K.live) : null;
@@ -185,9 +201,10 @@
   }
 
   function panel(title, key, J) {
-    const S = J.fixed, L = J.live, last = S.lastBar;
-    const f = stateLine(S), l = stateLine(L);
-    const dirTxt = (S.lastDir === 'bull' ? '양봉' : '음봉') + ` ${S.curBlock.n}개째`;
+    const S = J.fixed, L = J.live, A = J.act, last = S.lastBar;
+    const f = stateLine(A), l = stateLine(L);
+    if (A.pending) { f.action = L.state === 'up' ? '⏳ 전환 임박 — 종가 확정 전까지 행동 없음' : '⏳ 보유선 이탈 중 — 종가 확정 전까지 행동 없음'; f.chip = 'y'; }
+    const dirTxt = (A.lastDir === 'bull' ? '양봉' : '음봉') + ` ${A.curBlock.n}개째` + (J.partial ? ' (진행 중)' : '');
     const evs = S.events.filter(e => ['up', 'down', 'doubleTop', 'accel'].includes(e.type)).slice(-6).reverse();
     const perf = E.performance(J.bars, L, 8);
     const kv = S.state === 'up'

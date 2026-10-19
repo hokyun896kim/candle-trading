@@ -48,7 +48,7 @@
   function margin(r) { const l = r.m.live, f = r.m.fix; return f.brk ? (l.close / f.brk - 1) * 100 : 0; }
 
   function card(r) {
-    const f = r.m.fix, l = r.m.live, w = r.w.fix;
+    const f = r.m.fix, l = r.m.live, w = r.w.fix, wl = r.w.live;
     const grp = r.market === 'KOSPI' ? (r.rank <= 100 ? '대형' : '중형') : '상위';
     const gTone = grp === '중형' ? 'y' : '';
     let line;
@@ -67,7 +67,7 @@
           <span class="chip ${gTone}">${r.market === 'KOSPI' ? '코스피' : '코스닥'} ${r.rank}위 · ${grp}</span>
         </div>
         <div style="font-size:13.5px;color:var(--text2);margin-top:6px;line-height:1.55">${line}</div>
-        <div class="note" style="margin-top:4px">주봉 ${w.state === 'up' ? '상승' : w.state === 'down' ? '하락' : '-'} · ${ev} · ${perf} · 12개월 ${r.mo12 >= 0 ? '+' : ''}${r.mo12}%</div>
+        <div class="note" style="margin-top:4px">주봉 ${w.state === 'up' ? '상승' : w.state === 'down' ? '하락' : '-'}${w.state !== wl.state ? ' → 이번주 ' + (wl.state === 'up' ? '상승' : '하락') + '?' : (wl.dir === 'bull' ? ' 양봉' : ' 음봉')} · ${ev} · ${perf} · 12개월 ${r.mo12 >= 0 ? '+' : ''}${r.mo12}%</div>
       </section>`;
   }
 
