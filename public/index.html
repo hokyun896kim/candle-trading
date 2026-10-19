@@ -158,13 +158,40 @@
 </div>
 </main>
 
+<!-- ================= 탭3: 스캔 ================= -->
+<main id="tab-scan" class="tab">
+<div class="wrap">
+  <section class="card">
+    <h2>월봉 스캔 — 코스피 200 + 코스닥 150</h2>
+    <p>평일 장 마감 뒤 자동 갱신. 월봉 캔들 규칙으로 지금 매매 가능한 자리에 있는 종목만 추린다. 판정은 확정 월봉(지난달 말) 기준이고, 이번 달 진행 중 봉은 '이대로 끝나면'으로 병기.</p>
+    <div id="scan-meta" class="note"></div>
+    <div id="scan-kospi"></div>
+    <div class="seg" id="scan-seg">
+      <button class="on" data-f="buy">매수 자리</button>
+      <button data-f="turn">전환 임박</button>
+      <button data-f="hold">보유 중</button>
+      <button data-f="all">전체</button>
+    </div>
+    <div style="display:flex;gap:6px;margin:4px 0 6px">
+      <span class="chip o" data-mk="ALL" style="cursor:pointer">전체 시장</span>
+      <span class="chip" data-mk="KOSPI" style="cursor:pointer">코스피</span>
+      <span class="chip" data-mk="KOSDAQ" style="cursor:pointer">코스닥</span>
+    </div>
+    <input id="scan-q" placeholder="종목명 필터" style="width:100%;font-size:14px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);outline:none">
+  </section>
+  <div id="scan-list"></div>
+</div>
+</main>
+
 <nav class="tabbar">
   <button class="on" data-tab="concept"><span class="ic">📖</span>개념</button>
   <button data-tab="verify"><span class="ic">🔎</span>검증</button>
+  <button data-tab="scan"><span class="ic">📡</span>스캔</button>
 </nav>
 
 <script src="engine.js"></script>
 <script src="concept.js"></script>
 <script src="app.js"></script>
+<script src="scan.js"></script>
 </body>
 </html>
