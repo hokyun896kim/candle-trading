@@ -169,48 +169,48 @@
   // 월봉 게이트 판정
   function monthlyGate(m) {
     if (!m || m.state === 'none') return { code: 'wait', label: '월봉 판정 대기' };
-    if (m.state === 'down') return { code: 'closed', label: '월봉 하락 — 현금' };
-    if (m.lastDir === 'bear' && m.holdLine != null && m.lastBar.c < m.holdLine) return { code: 'closed', label: '이번 달 보유선 이탈 중' };
-    if (m.doubleTop) return { code: 'caution', label: '월봉 쌍봉 경고 — 비중 절반' };
-    return { code: 'open', label: m.lastDir === 'bull' ? '월봉 양봉 — 매매 허용' : '월봉 음봉(보유선 유지) — 매매 허용' };
+    if (m.state === 'down') return { code: 'closed', label: '월봉 하락 중 — 현금' };
+    if (m.lastDir === 'bear' && m.holdLine != null && m.lastBar.c < m.holdLine) return { code: 'closed', label: '이번 달 음봉이 양봉 저가 깨는 중' };
+    if (m.doubleTop) return { code: 'caution', label: '월봉 음봉 고가 낮아짐(쌍봉) — 비중 절반' };
+    return { code: 'open', label: m.lastDir === 'bull' ? '월봉 양봉 — 매매 해도 됨' : '월봉 음봉 눌림 — 매매 해도 됨' };
   }
 
-  // 종합 판정 (월봉 = 시황 게이트, 주봉 = 상태, 일봉 = 타이밍)
+  // 종합 판정 (월봉 = 시황, 주봉 = 상태, 일봉 = 타이밍) — 쉬운 말로
   function combine(daily, weekly, monthly) {
     const w = weekly.state, d = daily.state;
     let code, title, detail;
     const mg = monthlyGate(monthly);
     if (monthly && mg.code === 'closed') {
-      return { code: 'out', title: '현금 — 월봉 게이트 닫힘', detail: `${mg.label}. 월봉 양봉 종가가 ${fmt(monthly.breakLine)} 넘기 전까지 신규 매매 금지. 보유분은 일봉 신호대로 양봉에 정리한다.`, gate: mg };
+      return { code: 'out', title: '사지 마라 — 월봉이 하락', detail: `${mg.label}. 월봉 양봉이 앞 음봉 고가 ${fmt(monthly.breakLine)}을 넘을 때까지 새로 안 산다. 들고 있는 건 일봉 양봉 반등에 정리.`, gate: mg };
     }
     if (w === 'none' || d === 'none') {
-      code = 'wait'; title = '판정 대기'; detail = '아직 전환 신호가 한 번도 안 나왔다. 데이터가 더 쌓여야 한다.';
+      code = 'wait'; title = '아직 판정 없음'; detail = '양봉이 음봉을 이기거나 음봉이 양봉을 깬 적이 한 번도 없다. 데이터가 더 쌓여야 한다.';
     } else if (w === 'up') {
       if (d === 'up') {
         if (daily.buyOK) {
-          code = 'buy'; title = daily.firstBear ? '매수 — 첫 음봉' : '매수 — 눌림 음봉';
-          detail = `주봉 게이트 열림·보유선 유지. 일봉 음봉이 보유선(${fmt(daily.holdLine)}) 위에서 끝났다. 종가 또는 그 아래 아무 데나.`;
+          code = 'buy'; title = daily.firstBear ? '산다 — 오늘 첫 음봉' : '산다 — 음봉 눌림';
+          detail = `주봉·일봉 다 상승 중. 오늘 음봉인데 앞 양봉 저가 ${fmt(daily.holdLine)}는 안 깼다. 오늘 종가나 그 아래 아무 데서나 산다.`;
         } else if (daily.doubleTop) {
-          code = 'hold'; title = '보유 — 추가매수 중단';
-          detail = `일봉에 캔들 쌍봉 경고. 보유선(${fmt(daily.holdLine)})이 안 깨지면 그냥 든다. 더 사지는 않는다.`;
+          code = 'hold'; title = '들고만 있어라 — 더 안 산다';
+          detail = `일봉 음봉 고가가 낮아졌다(쌍봉). 앞 양봉 저가 ${fmt(daily.holdLine)} 안 깨지면 그냥 든다. 추가 매수는 없다.`;
         } else {
-          code = 'hold'; title = '보유 — 양봉 진행 중';
-          detail = `일봉 양봉 중이라 살 자리 아니다. 다음 음봉이 ${fmt(daily.holdLineNext ?? daily.holdLine)} 위에서 끝나면 매수.`;
+          code = 'hold'; title = '들고 있어라 — 양봉 중';
+          detail = `오늘 양봉이라 살 자리 아니다. 다음 음봉이 ${fmt(daily.holdLineNext ?? daily.holdLine)} 위에서 끝나면 그때 산다.`;
         }
       } else {
-        code = 'sell'; title = daily.sellBounce ? '매도 — 지금 양봉 반등' : '매도 — 양봉 반등 기다림';
-        detail = `주봉은 살아있지만 일봉이 하락 전환. 일봉대로 판다. 양봉 종가가 ${fmt(daily.breakLine)} 넘으면 재진입.` + (daily.accel ? ' ⚠ 하락 가속 경고 — 양봉이 음봉 고점 못 넘고 또 밀렸다. 더 큰 음봉 나올 수 있다.' : '');
+        code = 'sell'; title = daily.sellBounce ? '판다 — 지금 양봉 반등' : '판다 — 양봉 반등 오면';
+        detail = `주봉은 상승인데 일봉은 음봉이 양봉을 깼다. 일봉대로 양봉 반등에 판다. 일봉 양봉이 ${fmt(daily.breakLine)} 넘으면 다시 산다.` + (daily.accel ? ' ⚠ 양봉이 앞 음봉 못 이기고 또 음봉 — 더 큰 음봉 올 수 있다.' : '');
       }
-    } else { // weekly down
+    } else {
       if (d === 'down') {
-        code = 'out'; title = '현금 — 매매 금지';
-        detail = `주봉·일봉 모두 하락. 주봉 양봉 종가가 ${fmt(weekly.breakLine)} 넘을 때까지 손 뗀다.` + ((daily.accel || weekly.accel) ? ' ⚠ 하락 가속 경고.' : '');
+        code = 'out'; title = '현금 — 손 떼라';
+        detail = `주봉·일봉 다 하락 중. 주봉 양봉이 앞 음봉 고가 ${fmt(weekly.breakLine)} 넘을 때까지 안 산다.` + ((daily.accel || weekly.accel) ? ' ⚠ 더 큰 음봉 올 수 있다.' : '');
       } else {
-        code = 'nobuy'; title = '신규 매수 중단';
-        detail = `주봉 보유선이 깨졌다. 보유분은 일봉 매도신호(보유선 ${fmt(daily.holdLine)} 이탈) 기다려서 양봉에 판다. 음봉에 던지지 않는다.`;
+        code = 'nobuy'; title = '새로 사지 마라';
+        detail = `주봉 음봉이 앞 양봉 저가를 깼다. 들고 있는 건 일봉이 깨질 때(앞 양봉 저가 ${fmt(daily.holdLine)}) 양봉 반등에 판다. 음봉에 던지지 않는다.`;
       }
     }
-    if (mg.code === 'caution') detail = `월봉 쌍봉 경고 중 — 비중은 평소 절반. ` + detail;
+    if (mg.code === 'caution') detail = `월봉 음봉 고가가 낮아졌다(쌍봉) — 비중은 평소 절반. ` + detail;
     return { code, title, detail, gate: mg };
   }
 

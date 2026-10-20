@@ -131,6 +131,13 @@
   }
 
   function dateK(t) { return `${t.slice(2, 4)}.${t.slice(4, 6)}.${t.slice(6, 8)}`; }
+  // 시간축별 말
+  function words(tf, lastT) {
+    const y = +lastT.slice(0, 4), m = +lastT.slice(4, 6), d = +lastT.slice(6, 8);
+    if (tf === 'month') { const last = new Date(Date.UTC(y, m, 0)).getUTCDate(); return { this: '이번 달', next: `${m === 12 ? 1 : m + 1}월`, closeAt: `${m}월 ${last}일 종가`, bar: '달' }; }
+    if (tf === 'week') { const fri = new Date(Date.UTC(y, m - 1, d + 5)); return { this: '이번 주', next: '다음 주', closeAt: `${fri.getUTCMonth() + 1}월 ${fri.getUTCDate()}일(금) 종가`, bar: '주' }; }
+    return { this: '오늘', next: '내일', closeAt: '오늘 15:30 종가', bar: '날' };
+  }
   function pct(n) { return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
 
   function render(out, R) {
@@ -139,12 +146,12 @@
     let comb = E.combine(D.act, W.act, M.act);
     if (M.act.pending) {
       comb = M.live.state === 'up'
-        ? { ...comb, code: 'nobuy', title: '⏳ 월봉 전환 임박 — 월말 종가 확인', detail: `확정 월봉은 하락인데 이번 달 양봉이 전환선 ${E.fmt(M.fixed.breakLine)} 위에 있다. 월말 종가로 넘으면 게이트 열리고 다음 달부터 음봉마다 매수. 못 넘으면 그냥 반등. 지금 사면 실측 확정률 49%·실패 시 -6.5%.` }
-        : { ...comb, code: 'nobuy', title: '⏳ 월봉 시세 종료 임박 — 월말 종가 확인', detail: `확정 월봉은 상승인데 이번 달 음봉이 보유선 ${E.fmt(M.live.holdLine)} 아래에 있다. 월말 종가로 깨지면 하락 전환 → 다음 양봉 반등에 매도. 신규 매수는 중단.` };
+        ? (() => { const w = words('month', M.live.lastBar.t); return { ...comb, code: 'nobuy', title: `⏳ ${w.this} 월봉 양봉이 앞 음봉을 이기는 중`, detail: `앞 음봉 고가 ${E.fmt(M.fixed.breakLine)}을 지금 넘고 있다. ${w.closeAt}가 ${E.fmt(M.fixed.breakLine)} 위로 끝나면 → ${w.next}부터 음봉 나올 때마다 산다. 못 넘으면 안 산다. (지금 미리 사면: 열에 다섯은 못 넘고, 그땐 평균 -6.5%)` }; })()
+        : (() => { const w = words('month', M.live.lastBar.t); return { ...comb, code: 'nobuy', title: `⏳ ${w.this} 월봉 음봉이 앞 양봉을 깨는 중`, detail: `앞 양봉 저가 ${E.fmt(M.live.holdLine)} 밑에 와 있다. ${w.closeAt}가 ${E.fmt(M.live.holdLine)} 밑으로 끝나면 → 다음 양봉 올 때 판다. 새로 사지는 않는다.` }; })();
     } else if (W.act.pending && M.act.state !== 'down') {
       comb = W.live.state === 'up'
-        ? { ...comb, title: '⏳ 주봉 전환 임박 — 금요일 종가 확인', detail: `주봉 양봉이 전환선 ${E.fmt(W.fixed.breakLine)} 위. 금요일 종가로 넘으면 일봉 매매 허용. ` + comb.detail }
-        : { ...comb, title: '⏳ 주봉 보유선 이탈 중 — 금요일 종가 확인', detail: `주봉 음봉이 보유선 ${E.fmt(W.live.holdLine)} 아래. 금요일 종가로 깨지면 신규 매수 중단. ` + comb.detail };
+        ? (() => { const w = words('week', W.live.lastBar.t); return { ...comb, title: `⏳ ${w.this} 주봉 양봉이 앞 음봉을 이기는 중`, detail: `앞 음봉 고가 ${E.fmt(W.fixed.breakLine)}을 넘고 있다. ${w.closeAt}로 넘으면 일봉 매매 시작. ` + comb.detail }; })()
+        : (() => { const w = words('week', W.live.lastBar.t); return { ...comb, title: `⏳ ${w.this} 주봉 음봉이 앞 양봉을 깨는 중`, detail: `앞 양봉 저가 ${E.fmt(W.live.holdLine)} 밑에 와 있다. ${w.closeAt}로 깨지면 새로 안 산다. ` + comb.detail }; })();
     }
     const combLive = (D.partial || W.partial || M.partial) ? E.combine(D.live, W.live, M.live) : null;
     const kg = K ? E.monthlyGate(K.fixed) : null;
@@ -155,17 +162,17 @@
         <div class="big">${comb.title}</div>
         <p>${comb.detail}</p>
         <div style="margin-top:8px">
-          <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">종목 월봉: ${comb.gate.label}</span>
-          ${kg ? `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">코스피 월봉: ${kg.label}${kgLive && kgLive.code !== kg.code ? ' → 이번 달 진행: ' + kgLive.label : ''}</span>` : ''}
+          <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">이 종목 월봉: ${comb.gate.label}</span>
+          ${kg ? `<span class="chip" style="background:rgba(255,255,255,.22);color:#fff">코스피 월봉: ${kg.label}${kgLive && kgLive.code !== kg.code ? ' → 이번 달은 ' + kgLive.label : ''}</span>` : ''}
         </div>
-        ${combLive && (combLive.title !== comb.title) ? `<p style="font-size:12.5px;margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.18);border-radius:10px">⏳ 진행 중 봉 그대로 끝나면: <b>${combLive.title}</b> — ${combLive.detail}</p>` : ''}
-        <p style="font-size:11.5px;opacity:.85;margin-top:8px">확정 봉 기준(일봉 15:30·주봉 금요일·월봉 월말 종가). ${D.partial ? '일봉 장중' : ''}${D.partial && (W.partial || M.partial) ? ' · ' : ''}${W.partial ? '이번 주봉 진행 중' : ''}${(D.partial || W.partial) && M.partial ? ' · ' : ''}${M.partial ? '이번 월봉 진행 중' : ''}</p>
+        ${combLive && (combLive.title !== comb.title) ? `<p style="font-size:12.5px;margin-top:10px;padding:8px 10px;background:rgba(255,255,255,.18);border-radius:10px">⏳ 지금 봉이 이대로 끝나면: <b>${combLive.title}</b> — ${combLive.detail}</p>` : ''}
+        <p style="font-size:11.5px;opacity:.85;margin-top:8px">판정은 끝난 봉 기준(일봉 15:30·주봉 금요일·월봉 월말 종가). ${D.partial ? '오늘 장중' : ''}${D.partial && (W.partial || M.partial) ? ' · ' : ''}${W.partial ? '이번 주 아직 안 끝남' : ''}${(D.partial || W.partial) && M.partial ? ' · ' : ''}${M.partial ? '이번 달 아직 안 끝남' : ''}</p>
       </section>
       ${groupCard(groupOf(R.code))}
-      ${panel('월봉 · 시황 게이트', 'm', M)}
-      ${panel('주봉 · 상태', 'w', W)}
-      ${panel('일봉 · 타이밍', 'd', D)}
-      <p class="note">판정은 전부 종가 기준·꼬리 포함·합봉 적용. 데이터: 네이버 금융. 거래정지·액면분할 종목은 구간이 왜곡될 수 있으니 차트로 한 번 더 확인. 코스피 지수 자체를 보려면 '코스피'라고 쳐라.</p>`;
+      ${panel('월봉 — 시황', 'm', M, 'month')}
+      ${panel('주봉 — 종목 상태', 'w', W, 'week')}
+      ${panel('일봉 — 타이밍', 'd', D, 'day')}
+      <p class="note">판정은 전부 종가 기준·꼬리 포함·연속 같은 색은 한 봉으로. 데이터: 네이버 금융. 거래정지·액면분할 종목은 구간이 왜곡될 수 있으니 차트로 한 번 더 확인. 코스피 지수 자체를 보려면 '코스피'라고 쳐라.</p>`;
     out.innerHTML = html;
     drawChart('chart-m', M.bars, M.live, 60);
     drawChart('chart-w', W.bars, W.live, 120);
@@ -183,40 +190,41 @@
       </section>`;
   }
 
-  function stateLine(S) {
-    const st = S.state;
-    const stTxt = st === 'up' ? '상승 (게이트 열림)' : st === 'down' ? '하락 (게이트 닫힘)' : '판정 대기';
+  function stateLine(S, w) {
+    const st = S.state; w = w || { this: '이번', next: '다음', closeAt: '종가', bar: '봉' };
+    const stTxt = st === 'up' ? '상승 중' : st === 'down' ? '하락 중' : '판정 없음';
     let action, chip;
     if (st === 'up') {
       if (S.lastDir === 'bear') {
-        if (S.doubleTop) { action = '쌍봉 경고 — 추가매수 중단, 보유선만 본다'; chip = 'y'; }
-        else if (S.buyOK) { action = S.firstBear ? '첫 음봉 — 매수 자리' : '눌림 음봉 — 매수 자리'; chip = 'r'; }
-        else { action = '보유선 이탈'; chip = 'y'; }
-      } else { action = '양봉 진행 — 보유, 다음 음봉에 매수'; chip = 'g'; }
+        if (S.doubleTop) { action = `음봉 고가가 낮아짐(쌍봉) — 더 안 산다. 앞 양봉 저가 ${E.fmt(S.holdLine)} 지키는지만 본다`; chip = 'y'; }
+        else if (S.buyOK) { action = S.firstBear ? `${w.this} 첫 음봉 — 이 종가에 산다` : `음봉 눌림 — 이 종가에 산다`; chip = 'r'; }
+        else { action = `앞 양봉 저가 ${E.fmt(S.holdLine)} 깨짐`; chip = 'y'; }
+      } else { action = `양봉 중 — 들고 간다. ${w.next} 음봉 오면 산다`; chip = 'g'; }
     } else if (st === 'down') {
-      if (S.lastDir === 'bull') { action = '양봉 반등 — 매도 자리'; chip = 'b'; }
-      else { action = S.accel ? '⚠ 하락 가속 — 더 큰 음봉 경계' : '하락 중 — 양봉 기다려 매도'; chip = S.accel ? 'y' : 'b'; }
-    } else { action = '전환 신호 없음'; chip = ''; }
+      if (S.lastDir === 'bull') { action = '하락 중 양봉 반등 — 이 양봉에 판다'; chip = 'b'; }
+      else { action = S.accel ? '⚠ 양봉이 앞 음봉 못 이기고 또 음봉 — 더 큰 음봉 올 수 있다' : '하락 중 — 양봉 반등 오면 판다'; chip = S.accel ? 'y' : 'b'; }
+    } else { action = '양봉이 음봉 이긴 적도, 음봉이 양봉 깬 적도 없음'; chip = ''; }
     return { stTxt, action, chip };
   }
 
-  function panel(title, key, J) {
+  function panel(title, key, J, tf) {
     const S = J.fixed, L = J.live, A = J.act, last = S.lastBar;
-    const f = stateLine(A), l = stateLine(L);
-    if (A.pending) { f.action = L.state === 'up' ? '⏳ 전환 임박 — 종가 확정 전까지 행동 없음' : '⏳ 보유선 이탈 중 — 종가 확정 전까지 행동 없음'; f.chip = 'y'; }
-    const dirTxt = (A.lastDir === 'bull' ? '양봉' : '음봉') + ` ${A.curBlock.n}개째` + (J.partial ? ' (진행 중)' : '');
+    const w = words(tf, L.lastBar.t);
+    const f = stateLine(A, w), l = stateLine(L, w);
+    if (A.pending) { f.action = L.state === 'up' ? `⏳ ${w.this} 양봉이 앞 음봉 고가 ${E.fmt(S.breakLine)} 넘는 중 — ${w.closeAt} 보고 결정` : `⏳ ${w.this} 음봉이 앞 양봉 저가 ${E.fmt(L.holdLine)} 깨는 중 — ${w.closeAt} 보고 결정`; f.chip = 'y'; }
+    const dirTxt = (A.lastDir === 'bull' ? '양봉' : '음봉') + ` ${A.curBlock.n}개째` + (J.partial ? ' (아직 안 끝남)' : '');
     const evs = S.events.filter(e => ['up', 'down', 'doubleTop', 'accel'].includes(e.type)).slice(-6).reverse();
     const perf = E.performance(J.bars, L, 8);
     const kv = S.state === 'up'
-      ? `<div class="box"><div class="k">보유선 (직전 양봉블록 저점)</div><div class="v" style="color:var(--orange-deep)">${E.fmt(S.holdLine)}</div><div class="s">${S.holdLineNext != null && S.holdLineNext !== S.holdLine ? '다음 음봉부터 ' + E.fmt(S.holdLineNext) : (S.holdLine != null ? '여유 ' + pct((last.c / S.holdLine - 1) * 100) : '')}</div></div>`
-      : `<div class="box"><div class="k">전환선 (직전 음봉블록 고점)</div><div class="v" style="color:var(--blue)">${E.fmt(S.breakLine)}</div><div class="s">${S.breakLine != null ? '양봉 종가가 넘어야 ' + pct((S.breakLine / last.c - 1) * 100) : ''}</div></div>`;
+      ? `<div class="box"><div class="k">앞 양봉 저가 — 여기 깨면 판다</div><div class="v" style="color:var(--orange-deep)">${E.fmt(S.holdLine)}</div><div class="s">${S.holdLineNext != null && S.holdLineNext !== S.holdLine ? '이 양봉 끝나면 ' + E.fmt(S.holdLineNext) + '로 올라감' : (S.holdLine != null ? '여기까지 ' + pct((last.c / S.holdLine - 1) * 100) : '')}</div></div>`
+      : `<div class="box"><div class="k">앞 음봉 고가 — 여기 넘으면 산다</div><div class="v" style="color:var(--blue)">${E.fmt(S.breakLine)}</div><div class="s">${S.breakLine != null ? '양봉 종가가 ' + pct((S.breakLine / last.c - 1) * 100) + ' 더 가야' : ''}</div></div>`;
     const liveBar = L.lastBar;
     const liveBlock = J.partial ? `
         <div class="live">
-          <div class="k">⏳ 진행 중 봉 (${dateK(liveBar.t)} · ${L.lastDir === 'bull' ? '양봉' : '음봉'} · 종가 ${E.fmt(liveBar.c)})</div>
-          <div class="t">이대로 끝나면 → <b>${l.stTxt}</b> · ${l.action}${L.state === 'up' && L.holdLine != null ? ` · 보유선 ${E.fmt(L.holdLine)}` : ''}${L.state === 'down' && L.breakLine != null ? ` · 전환선 ${E.fmt(L.breakLine)}` : ''}</div>
+          <div class="k">⏳ ${w.this} 봉 (${L.lastDir === 'bull' ? '양봉' : '음봉'} · 지금 ${E.fmt(liveBar.c)})</div>
+          <div class="t">${w.closeAt}가 이대로면 → <b>${l.stTxt}</b> · ${l.action}${L.state === 'up' && L.holdLine != null ? ` · 깨면 파는 선 ${E.fmt(L.holdLine)}` : ''}${L.state === 'down' && L.breakLine != null ? ` · 넘으면 사는 선 ${E.fmt(L.breakLine)}` : ''}</div>
         </div>` : '';
-    const perfRows = perf.trades.map(t => `<tr><td>${dateK(t.et)}</td><td>${dateK(t.xt)}${t.openTrade ? '<small> ' + t.note + '</small>' : ''}</td><td class="${t.pct >= 0 ? 'pos' : 'neg'}">${pct(t.pct)}</td><td>${t.bars}봉</td></tr>`).join('');
+    const perfRows = perf.trades.map(t => `<tr><td>${dateK(t.et)}</td><td>${dateK(t.xt)}${t.openTrade ? '<small> ' + t.note + '</small>' : ''}</td><td class="${t.pct >= 0 ? 'pos' : 'neg'}">${pct(t.pct)}</td><td>${t.bars}${w.bar}</td></tr>`).join('');
     const perfStat = perf.stats ? `<div class="pstat"><span>신호 ${perf.total}회</span><span>승률 <b>${perf.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${perf.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.avg)}</b></span><span>중앙 <b class="${perf.stats.med >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.med)}</b></span><span>평균 ${perf.stats.avgBars.toFixed(0)}봉</span></div>` : '<div class="pstat"><span>완료된 거래 없음</span></div>';
     return `
       <section class="card">
@@ -224,15 +232,15 @@
         <div class="state"><span class="dot ${S.state}"></span><b>${f.stTxt}</b><span class="chip">${dirTxt}</span></div>
         <span class="chip ${f.chip}">${f.action}</span>
         <div class="kv">
-          <div class="box"><div class="k">확정 종가 (${dateK(last.t)})</div><div class="v">${E.fmt(last.c)}</div><div class="s">${S.lastDir === 'bull' ? '양봉' : '음봉'} · 저 ${E.fmt(last.l)} / 고 ${E.fmt(last.h)}</div></div>
+          <div class="box"><div class="k">끝난 봉 종가 (${dateK(last.t)})</div><div class="v">${E.fmt(last.c)}</div><div class="s">${S.lastDir === 'bull' ? '양봉' : '음봉'} · 저 ${E.fmt(last.l)} / 고 ${E.fmt(last.h)}</div></div>
           ${kv}
         </div>
         ${liveBlock}
         <div id="chart-${key}" class="chart"></div>
-        <ul class="ev">${evs.map(e => `<li><span class="d">${dateK(e.t)}</span><span class="tag ${e.type === 'up' ? 'up' : e.type === 'down' ? 'down' : e.type === 'accel' ? 'ac' : 'dt'}">${e.type === 'up' ? '상승 전환' : e.type === 'down' ? '하락 전환' : e.type === 'accel' ? '하락 가속' : '쌍봉 경고'}</span><span>${e.type === 'up' ? '양봉 종가 ' + E.fmt(e.price) + ' > 음봉 고점 ' + E.fmt(e.level) : e.type === 'down' ? '음봉 종가 ' + E.fmt(e.price) + ' < 양봉 저점 ' + E.fmt(e.level) : e.type === 'accel' ? '양봉이 ' + E.fmt(e.level) + ' 못 넘고 다시 밀림' : '음봉 고점이 ' + E.fmt(e.level) + ' 못 넘고 낮아짐'}</span></li>`).join('') || '<li><span class="d">-</span>신호 없음</li>'}</ul>
-        <h3 style="margin-top:14px">과거 신호 성과 <span class="note" style="display:inline">상승전환 종가 매수 → 하락전환 뒤 첫 양봉 종가 매도</span></h3>
+        <ul class="ev">${evs.map(e => `<li><span class="d">${dateK(e.t)}</span><span class="tag ${e.type === 'up' ? 'up' : e.type === 'down' ? 'down' : e.type === 'accel' ? 'ac' : 'dt'}">${e.type === 'up' ? '양봉이 이김' : e.type === 'down' ? '음봉이 깸' : e.type === 'accel' ? '또 음봉' : '고가 낮아짐'}</span><span>${e.type === 'up' ? '양봉 종가 ' + E.fmt(e.price) + ' > 앞 음봉 고가 ' + E.fmt(e.level) + ' → 상승 시작' : e.type === 'down' ? '음봉 종가 ' + E.fmt(e.price) + ' < 앞 양봉 저가 ' + E.fmt(e.level) + ' → 하락 시작' : e.type === 'accel' ? '양봉이 ' + E.fmt(e.level) + ' 못 넘고 또 음봉' : '음봉 고가가 ' + E.fmt(e.level) + ' 못 넘고 낮아짐(쌍봉)'}</span></li>`).join('') || '<li><span class="d">-</span>신호 없음</li>'}</ul>
+        <h3 style="margin-top:14px">이 종목에서 과거에 이렇게 했으면 <span class="note" style="display:inline">양봉이 음봉 이긴 ${w.bar} 종가에 사서, 음봉이 양봉 깬 뒤 첫 양봉 종가에 판 결과</span></h3>
         ${perfStat}
-        <table class="perf"><tr><th>매수</th><th>매도</th><th>수익</th><th>보유</th></tr>${perfRows || '<tr><td colspan="4">-</td></tr>'}</table>
+        <table class="perf"><tr><th>샀을 때</th><th>팔았을 때</th><th>수익</th><th>기간</th></tr>${perfRows || '<tr><td colspan="4">-</td></tr>'}</table>
       </section>`;
   }
 
@@ -257,9 +265,9 @@
       text: e.type === 'up' ? '↑' : e.type === 'down' ? '↓' : ''
     }));
     s.setMarkers(markers);
-    if (S.state === 'up' && S.holdLine != null) s.createPriceLine({ price: S.holdLine, color: '#FF6F0F', lineWidth: 1.5, lineStyle: 2, title: '보유선' });
-    if (S.state === 'up' && S.holdLineNext != null && S.holdLineNext !== S.holdLine) s.createPriceLine({ price: S.holdLineNext, color: '#FFB27A', lineWidth: 1, lineStyle: 3, title: '다음' });
-    if (S.state === 'down' && S.breakLine != null) s.createPriceLine({ price: S.breakLine, color: '#3182F6', lineWidth: 1.5, lineStyle: 2, title: '전환선' });
+    if (S.state === 'up' && S.holdLine != null) s.createPriceLine({ price: S.holdLine, color: '#FF6F0F', lineWidth: 1.5, lineStyle: 2, title: '깨면 판다' });
+    if (S.state === 'up' && S.holdLineNext != null && S.holdLineNext !== S.holdLine) s.createPriceLine({ price: S.holdLineNext, color: '#FFB27A', lineWidth: 1, lineStyle: 3, title: '이 양봉 끝나면' });
+    if (S.state === 'down' && S.breakLine != null) s.createPriceLine({ price: S.breakLine, color: '#3182F6', lineWidth: 1.5, lineStyle: 2, title: '넘으면 산다' });
     chart.timeScale().fitContent();
     charts.push(chart);
     
