@@ -134,7 +134,7 @@
   // 시간축별 말
   function words(tf, lastT) {
     const y = +lastT.slice(0, 4), m = +lastT.slice(4, 6), d = +lastT.slice(6, 8);
-    if (tf === 'month') { const last = new Date(Date.UTC(y, m, 0)).getUTCDate(); return { this: '이번 달', next: `${m === 12 ? 1 : m + 1}월`, closeAt: `${m}월 ${last}일 종가`, bar: '달' }; }
+    if (tf === 'month') { let dt = new Date(Date.UTC(y, m, 0)); while (dt.getUTCDay() === 0 || dt.getUTCDay() === 6) dt = new Date(dt.getTime() - 864e5); return { this: '이번 달', next: `${m === 12 ? 1 : m + 1}월`, closeAt: `${m}월 ${dt.getUTCDate()}일 종가`, bar: '달' }; }
     if (tf === 'week') { const fri = new Date(Date.UTC(y, m - 1, d + 5)); return { this: '이번 주', next: '다음 주', closeAt: `${fri.getUTCMonth() + 1}월 ${fri.getUTCDate()}일(금) 종가`, bar: '주' }; }
     return { this: '오늘', next: '내일', closeAt: '오늘 15:30 종가', bar: '날' };
   }
