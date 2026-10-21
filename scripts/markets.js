@@ -145,28 +145,28 @@ function judge(asset, tf, bars, days, mk) {
   const thisS = tf === 'month' ? `${mo}월이` : '이번 주가';        // 주어
   let status, tone, text, p = null, pLabel = '';
   if (F.state === 'down' && L.state === 'up') {
-    const need = F.breakLine / c - 1; p = prob(days, N, Math.max(need, cur.o / c - 1), Infinity); pLabel = `${when}에 지금처럼 넘어서 끝날 확률`;
+    const need = F.breakLine / c - 1; p = prob(days, N, Math.max(need, cur.o / c - 1), Infinity); pLabel = `${when}에 앞 음봉 고가 위로 끝날 확률`; var pk = 'buy';
     status = '🔥 양봉이 음봉 이기는 중'; tone = 'o';
     text = `${thisW} 양봉이 앞 음봉 고가(${fmt(F.breakLine)})를 넘고 있다(지금 ${fmt(c)}, ${pc((c / F.breakLine - 1) * 100)}). ${when}에 그 위로 끝나면 상승 시작 — 그다음 ${unitWord}부터 음봉 나올 때마다 산다. 못 넘고 끝나면 안 산다.`;
   } else if (F.state === 'up' && L.state === 'down') {
-    const need = L.holdLine / c - 1; p = prob(days, N, -Infinity, need); pLabel = `${when}에 그 밑에서 끝날 확률`;
+    const need = L.holdLine / c - 1; p = prob(days, N, -Infinity, need); pLabel = `${when}에 앞 양봉 저가 밑으로 끝날 확률`; var pk = 'sell';
     status = '⛔ 음봉이 양봉 깨는 중'; tone = 'b';
     text = `${thisW} 음봉이 앞 양봉 저가(${fmt(L.holdLine)}) 밑에 와 있다(지금 ${fmt(c)}, ${pc((c / L.holdLine - 1) * 100)}). ${when}에 그 밑이면 하락 시작 — 그 음봉에 던지지 말고 다음 양봉 반등에 판다. 그 위로 회복하면 그냥 들고 간다.`;
   } else if (F.state === 'up' && L.lastDir === 'bear') {
-    const lo = L.holdLine / c - 1, hi = cur.o / c - 1; p = prob(days, N, lo, hi); pLabel = `${when}에 음봉 + ${fmt(L.holdLine)} 위로 끝날 확률`;
+    const lo = L.holdLine / c - 1, hi = cur.o / c - 1; p = prob(days, N, lo, hi); pLabel = `${when}에 음봉이면서 ${fmt(L.holdLine)} 위로 끝날 확률`; var pk = 'buy';
     status = L.doubleTop ? '🎯 상승 중 음봉 (고가 낮아짐)' : '🎯 상승 중 음봉 눌림'; tone = L.doubleTop ? 'y' : 'r';
     text = `상승 중인데 ${thisS} 음봉이다(지금 ${fmt(c)}, 시가 ${fmt(cur.o)}). ${when}에 음봉으로 끝나고 앞 양봉 저가(${fmt(L.holdLine)})를 안 깨면 그 종가에 산다${L.firstBear ? ' — 상승 시작 뒤 첫 음봉이라 제일 좋은 자리' : ''}.` + (L.doubleTop ? ' 다만 음봉 고가가 앞 음봉보다 낮아져서(쌍봉) 더 사지는 않는다.' : '') + ` 깨면 파는 선까지 ${pc((L.holdLine / c - 1) * 100)}.`;
   } else if (F.state === 'up') {
-    const lo = L.holdLine != null ? L.holdLine / c - 1 : -Infinity; p = prob(days, N, -Infinity, lo); pLabel = `${when}에 앞 양봉 저가 밑으로 끝날 확률(위험)`;
+    const lo = L.holdLine != null ? L.holdLine / c - 1 : -Infinity; p = prob(days, N, -Infinity, lo); pLabel = `${when}에 앞 양봉 저가 밑으로 끝날 확률`; var pk = 'sell';
     status = '상승 중 · 양봉'; tone = 'g';
     text = `상승 중이고 ${thisW}도 양봉이라 그냥 들고 간다. 산 자리 아니다 — 다음 음봉 기다린다. 깨면 파는 선은 앞 양봉 저가(${fmt(L.holdLine)})${L.holdLineNext != null ? `, 이 양봉이 끝나면 ${fmt(L.holdLineNext)}까지 올라간다` : ''}.`;
   } else {
-    const need = F.breakLine / c - 1; p = prob(days, N, Math.max(need, cur.o / c - 1), Infinity); pLabel = `${when}에 ${fmt(F.breakLine)} 넘어서 끝날 확률`;
+    const need = F.breakLine / c - 1; p = prob(days, N, Math.max(need, cur.o / c - 1), Infinity); pLabel = `${when}에 양봉이면서 ${fmt(F.breakLine)} 위로 끝날 확률`; var pk = 'buy';
     status = '하락 중'; tone = '';
     text = `하락 중이다. 양봉이 앞 음봉 고가(${fmt(F.breakLine)})를 넘어야 산다(지금 ${fmt(c)}, ${pc(need * 100)} 남음).` + (L.accel ? ' 양봉이 앞 음봉 못 이기고 또 음봉이 나와서 더 큰 음봉을 조심할 때다.' : '') + (L.lastDir === 'bull' ? ` 이번 ${unitWord} 양봉은 아직 반등일 뿐이다.` : '');
   }
   return {
-    tf, status, tone, text, prob: p, probLabel: p == null ? '' : pLabel + (N ? ` (남은 ${N}${mk.weekdays ? '거래일' : '일'}, 과거 기준)` : ''),
+    tf, status, tone, text, prob: p, probKind: typeof pk === 'undefined' ? 'buy' : pk, probLabel: p == null ? '' : pLabel + (N ? ` · 과거 ${N}${mk.weekdays ? '거래일' : '일'} 움직임으로 셈` : ''),
     when, partial, price: c, open: cur.o, hold: L.holdLine, holdNext: L.holdLineNext, brk: F.state === 'down' ? F.breakLine : L.breakLine,
     state: F.state, liveState: L.state, dir: L.lastDir, events: L.events.filter(e => ['up', 'down', 'doubleTop'].includes(e.type)).slice(-12).map(e => ({ t: e.t, type: e.type })),
     bars: bars.slice(tf === 'month' ? -96 : -156).map(b => [b.t, b.o, b.h, b.l, b.c])

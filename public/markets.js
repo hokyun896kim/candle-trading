@@ -19,17 +19,22 @@
     $('#mk-list').innerHTML = DATA.assets.map(a => {
       const tf = sel[a.key] || a.best; const j = a.tf[tf]; const b = j.bt;
       const tabs = Object.keys(a.tf).map(k => `<button data-a="${a.key}" data-tf="${k}" class="${k === tf ? 'on' : ''}">${TF[k]}${k === a.best ? ' ⭐' : ''}</button>`).join('');
+      const pk = j.probKind === 'sell';
       const pbar = j.prob == null ? '' : `
-        <div style="margin-top:10px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span>${j.probLabel}</span><b style="color:var(--text);font-size:15px">${j.prob}%</b></div>
-          <div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-top:4px"><div style="height:100%;width:${j.prob}%;background:var(--orange)"></div></div>
+        <div style="margin-top:12px;background:${pk ? '#EAF2FF' : '#FFF1E6'};border-radius:12px;padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <b style="font-size:14px;color:${pk ? 'var(--blue)' : 'var(--orange-deep)'}">${pk ? '판다 신호' : '산다 신호'} 나올 확률</b>
+            <b style="font-size:22px;color:${pk ? 'var(--blue)' : 'var(--orange-deep)'}">${j.prob}%</b>
+          </div>
+          <div style="height:8px;background:rgba(255,255,255,.8);border-radius:99px;overflow:hidden;margin-top:6px"><div style="height:100%;width:${j.prob}%;background:${pk ? 'var(--blue)' : 'var(--orange)'}"></div></div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:6px;line-height:1.5">${j.probLabel}. 돈 벌 확률이 아니라 그 날 신호가 나올지만 센 거다.</div>
         </div>`;
       const holding = b.open ? (b.open.waitSell
         ? `<b>들고 있으면</b>: ${ym(b.open.t)}에 산 게 음봉이 양봉을 깨서 끝났다(지금 ${b.open.pct >= 0 ? '+' : ''}${b.open.pct}%). ${j.dir === 'bull' ? `<b>지금 ${tf === 'month' ? '이번 달' : '이번 주'} 양봉이 그 반등이다 — 여기서 판다.</b>` : '다음 양봉 반등에 판다.'}`
         : `<b>지금 들고 있는 매매</b>: ${ym(b.open.t)}에 ${fmtN(b.open.p, a.unit)}에 샀다 → 지금 <b class="${b.open.pct >= 0 ? 'pos' : 'neg'}">${b.open.pct >= 0 ? '+' : ''}${b.open.pct}%</b>`)
         : (b.lastClosed ? `<b>지금 들고 있는 매매 없음</b> · 마지막은 ${ym(b.lastClosed.et)}→${ym(b.lastClosed.xt)} ${b.lastClosed.pct >= 0 ? '+' : ''}${b.lastClosed.pct}%` : '');
       const log = (LOG[`${a.key}_${tf}`] || []).slice(-7).reverse();
-      const logHtml = log.length ? `<ul class="ev" style="margin-top:6px">${log.map(e => `<li><span class="d">${e.d.slice(5).replace('-', '.')}</span><span style="flex:1"><b>${e.s}</b> · ${fmtN(e.p, a.unit)}${e.prob != null ? ` · ${e.prob}%` : ''}</span></li>`).join('')}</ul>` : '<p class="note">기록이 내일부터 쌓인다.</p>';
+      const logHtml = log.length ? `<ul class="ev" style="margin-top:6px">${log.map(e => `<li><span class="d">${e.d.slice(5).replace('-', '.')}</span><span style="flex:1"><b>${e.s}</b> · ${fmtN(e.p, a.unit)}${e.prob != null ? ` · 신호 확률 ${e.prob}%` : ''}</span></li>`).join('')}</ul>` : '<p class="note">기록이 내일부터 쌓인다.</p>';
       return `
       <section class="card">
         <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
