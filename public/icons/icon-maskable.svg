@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF9A4D"/><stop offset="1" stop-color="#FF5A00"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.24" r="0.5">
+      <stop offset="0" stop-color="#FFE7A3" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7A3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE27A"/><stop offset="1" stop-color="#F4B400"/>
+    </linearGradient>
+    <linearGradient id="bull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFE9DA"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#8A2E00" flood-opacity=".28"/></filter>
+  </defs><rect width="512" height="512" fill="url(#bg)"/><rect width="512" height="512" fill="url(#glow)"/><g transform="translate(256 262) scale(.78) translate(-256 -262)">
+  
+  
+
+  <!-- 바닥 라인 -->
+  <path d="M70 430 H442" stroke="#FFFFFF" stroke-opacity=".28" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 음봉 (파랑) + 타점 조준경 -->
+  <g filter="url(#sh)">
+    <line x1="150" y1="250" x2="150" y2="392" stroke="#1F4FD1" stroke-width="10" stroke-linecap="round"/>
+    <rect x="122" y="278" width="56" height="86" rx="12" fill="#2F6BFF"/>
+  </g>
+  <g fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round">
+    <circle cx="150" cy="321" r="62" stroke-opacity=".95"/>
+    <line x1="150" y1="240" x2="150" y2="262"/><line x1="150" y1="380" x2="150" y2="402"/>
+    <line x1="69" y1="321" x2="91" y2="321"/><line x1="209" y1="321" x2="231" y2="321"/>
+  </g>
+  <circle cx="150" cy="321" r="9" fill="#FFFFFF"/>
+
+  <!-- 장대 양봉 (흰색) -->
+  <g filter="url(#sh)">
+    <line x1="292" y1="128" x2="292" y2="410" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    <rect x="258" y="160" width="68" height="214" rx="14" fill="url(#bull)"/>
+  </g>
+
+  <!-- 상승 화살표 -->
+  <g filter="url(#sh)">
+    <path d="M196 284 C 250 250, 300 190, 352 150" fill="none" stroke="#FFE27A" stroke-width="16" stroke-linecap="round"/>
+    <path d="M330 120 L392 128 L366 184 Z" fill="#FFE27A" stroke="#FFE27A" stroke-width="8" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 코인 ₩ -->
+  <g filter="url(#sh)">
+    <circle cx="400" cy="300" r="62" fill="url(#coin)"/>
+    <circle cx="400" cy="300" r="48" fill="none" stroke="#FFF4C2" stroke-width="6"/>
+    <text x="400" y="326" text-anchor="middle" font-family="Arial Black, Helvetica, sans-serif" font-weight="900" font-size="70" fill="#B26A00">₩</text>
+  </g>
+  <!-- 반짝 -->
+  <path d="M438 214 l7 16 16 7 -16 7 -7 16 -7 -16 -16 -7 16 -7z" fill="#FFFFFF"/>
+  <path d="M100 150 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5z" fill="#FFFFFF" fill-opacity=".85"/>
+
+</g></svg>

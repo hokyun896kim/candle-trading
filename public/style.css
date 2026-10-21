@@ -10,7 +10,7 @@ html,body{margin:0;padding:0;background:var(--bg2);color:var(--text);font-family
 body{padding-bottom:84px}
 a{color:inherit}
 .topbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:10px}
-.topbar .logo{width:30px;height:30px;border-radius:10px;background:var(--orange);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.topbar .logo{width:32px;height:32px;border-radius:9px;display:block}
 .topbar h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.3px}
 .topbar .sub{color:var(--text3);font-size:12px;margin-left:auto}
 .wrap{max-width:640px;margin:0 auto;padding:16px}
