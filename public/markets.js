@@ -48,6 +48,7 @@
         <div id="mk-chart-${a.key}" class="chart" style="height:260px"></div>
         <div class="live" style="background:var(--bg2);margin-top:10px"><div class="t">${holding}</div></div>
         <h3 style="margin-top:14px">이 방식 과거 성적 (${TF[tf]})</h3>
+        <p class="note" style="margin:-2px 0 6px">양봉 종가가 앞 음봉 고가를 넘은 ${tf === 'month' ? '달' : '주'} 종가에 사서, 음봉 종가가 앞 양봉 저가를 깬 뒤 첫 양봉 종가에 판 결과</p>
         <div class="pstat"><span>${b.years}년 · 매매 ${b.n}번 · 승률 ${b.win}%</span><span>연 <b class="${b.cagr >= 0 ? 'pos' : 'neg'}">${b.cagr}%</b> · 최대 낙폭 <b>${b.mdd}%</b></span><span>그냥 보유: 연 ${b.holdCagr}% · 낙폭 ${b.holdMdd}%</span></div>
         <p class="note" style="margin-top:2px">${a.note}</p>
         <h3 style="margin-top:12px">모니터링 기록</h3>
