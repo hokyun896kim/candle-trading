@@ -161,18 +161,24 @@
     }
     opens.forEach(o => trades.push({ ...o, xi: bars.length - 1, xt: bars[bars.length - 1].t, xp: bars[bars.length - 1].c, openTrade: true, note: '보유 중' }));
     trades.forEach(t => { t.pct = (t.xp / t.ep - 1) * 100 - cost; t.bars = t.xi - t.ei; });
-    const closed = trades.filter(t => !t.openTrade);
+    const stats = statsOf(trades);
+    return { trades: trades.slice(-(maxRows || 8)).reverse(), allTrades: trades, stats, total: trades.length };
+  }
+
+  // 끝난 매매만으로 성적 (since: 'YYYYMMDD' 이후 산 것만)
+  function statsOf(trades, since) {
+    const closed = trades.filter(t => !t.openTrade && (!since || t.et >= since));
+    if (!closed.length) return null;
     const pcts = closed.map(t => t.pct).sort((a, b) => a - b);
     const gw = closed.filter(t => t.pct > 0).reduce((a, t) => a + t.pct, 0), gl = -closed.filter(t => t.pct <= 0).reduce((a, t) => a + t.pct, 0);
-    const stats = closed.length ? {
+    return {
       n: closed.length,
       win: closed.filter(t => t.pct > 0).length / closed.length * 100,
       avg: closed.reduce((a, t) => a + t.pct, 0) / closed.length,
       med: pcts[Math.floor(pcts.length / 2)],
       pf: gl > 0 ? gw / gl : (gw > 0 ? 99 : 0),
       avgBars: closed.reduce((a, t) => a + t.bars, 0) / closed.length
-    } : null;
-    return { trades: trades.slice(-(maxRows || 8)).reverse(), stats, total: trades.length };
+    };
   }
 
   // 월봉 게이트 판정
@@ -225,5 +231,5 @@
 
   function fmt(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
 
-  return { fromNaver, analyze, combine, monthlyGate, performance, fmt };
+  return { fromNaver, analyze, combine, monthlyGate, performance, statsOf, fmt };
 });

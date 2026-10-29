@@ -90,11 +90,11 @@
     // 이 종목에서 지금 자리랑 같은 매매를 과거에 했으면 (🔥=넘은 달 종가 매수, 🎯=음봉 매수 · 비용 0.25% 뺌)
     const P = mine(r);
     if (P && P.n >= 5) {
-      if (P.pf < 1) { s -= 3; why.push(`이 종목에서 ${P.lab} ${P.n}번 해보니 손익비 ${P.pf} — 안 먹혔다`); }
-      else if (P.pf >= 4 && P.avg >= 15) { s += 2; why.push(`이 종목에서 ${P.lab} ${P.n}번 · 승률 ${P.win}% · 평균 +${P.avg.toFixed(0)}% · 손익비 ${P.pf} 👍`); }
-      else if (P.pf >= 2) { s += 1; why.push(`이 종목에서 ${P.lab} ${P.n}번 · 손익비 ${P.pf}`); }
-      else why.push(`이 종목에서 ${P.lab} ${P.n}번 · 손익비 ${P.pf} — 약함`);
-    } else if (P) why.push(`이 종목 기록 ${P.n}번뿐 (${r.mFrom}년부터) — 판단 보류`);
+      if (P.pf < 1) { s -= 3; why.push(`이 종목 ${P.span} ${P.lab} ${P.n}번 해보니 손익비 ${P.pf} — 안 먹혔다`); }
+      else if (P.pf >= 4 && P.avg >= 15) { s += 2; why.push(`이 종목 ${P.span} ${P.lab} ${P.n}번 · 승률 ${P.win}% · 평균 +${P.avg.toFixed(0)}% · 손익비 ${P.pf} 👍`); }
+      else if (P.pf >= 2) { s += 1; why.push(`이 종목 ${P.span} ${P.lab} ${P.n}번 · 손익비 ${P.pf}`); }
+      else why.push(`이 종목 ${P.span} ${P.lab} ${P.n}번 · 손익비 ${P.pf} — 약함`);
+    } else if (P) why.push(`이 종목 ${P.span} 기록 ${P.n}번뿐 (데이터 ${r.mFrom}년부터) — 판단 보류`);
     else if (r.perf && r.perf.n >= 3) {   // 옛 scan.json
       const p = r.perf; if (p.avg >= 20 && p.win >= 50) s += 2; else if (p.avg < 0) s -= 2;
       why.push(`과거 ${p.n}번 중 ${p.win}% 이김·평균 ${p.avg >= 0 ? '+' : ''}${p.avg.toFixed(0)}%`);
@@ -105,7 +105,8 @@
   }
 
   // 너무 늦은 눌림: 상승 시작 뒤 4번째 음봉부터, 또는 시작가의 두 배 넘게 오른 뒤 → ⭐추천에서 뺀다 (🎯 목록엔 남김)
-  function mine(r) { if (!r.pm) return null; const t = r.cls === 'turn' ? r.pm.turn : r.pm.bear; return t ? { ...t, lab: r.cls === 'turn' ? '넘은 달 종가 매수' : '음봉 매수' } : null; }
+  // 점수는 최근 10년 성적으로 (25년 전체는 2000년대 장이 섞여서 지금이랑 다를 수 있다)
+  function mine(r, all) { const src = all ? r.pm : (r.pm10 || r.pm); if (!src) return null; const t = r.cls === 'turn' ? src.turn : src.bear; return t ? { ...t, lab: r.cls === 'turn' ? '넘은 달 종가 매수' : '음봉 매수', span: all || !r.pm10 ? '전체' : '최근 10년' } : null; }
   function weekly(r) { if (!r.pw) return null; const t = r.cls === 'turn' ? r.pw.turn : r.pw.bear; return t ? { ...t, lab: r.cls === 'turn' ? '넘은 주 종가 매수' : '음봉 매수' } : null; }
   // ⭐추천에서 빼는 것: 늦은 눌림, 또는 이 종목에서 같은 매매가 5번 넘게 해서 손해였던 것
   function skip(r) { const P = mine(r); return late(r) || !!(P && P.n >= 5 && P.pf < 1); }
@@ -124,7 +125,8 @@
     else line = `하락 중 · 양봉이 ${E.fmt(f.brk)} 넘어야 산다 (${((f.brk / l.close - 1) * 100).toFixed(1)}% 위)${l.accel ? ' · ⚠ 더 큰 음봉 올 수 있다' : ''}`;
     const ev = r.m.lastEv ? `${r.m.lastEv.t.slice(2, 4)}.${r.m.lastEv.t.slice(4, 6)}에 ${r.m.lastEv.type === 'up' ? '상승 시작' : r.m.lastEv.type === 'down' ? '하락 시작' : '쌍봉'}` : '';
     const P = (r.cls === 'turn' || r.cls === 'buy') ? mine(r) : (r.pm ? { ...r.pm.turn, lab: '넘은 달 종가 매수' } : null);
-    const perf = P && P.n ? `이 종목 월봉 ${P.lab}: ${P.n}번 · 승률 ${P.win}% · 평균 ${P.avg >= 0 ? '+' : ''}${P.avg}% · 손익비 ${P.pf}`
+    const PA = (r.cls === 'turn' || r.cls === 'buy') ? mine(r, true) : null;
+    const perf = P && P.n ? `이 종목 월봉 ${P.lab} — ${P.span} ${P.n}번 · 승률 ${P.win}% · 평균 ${P.avg >= 0 ? '+' : ''}${P.avg}% · 손익비 ${P.pf}${PA && PA.n !== P.n ? ` (전체 ${r.mFrom}년~ ${PA.n}번 · 손익비 ${PA.pf})` : ''}`
       : r.perf ? `과거 ${r.perf.n}번 중 ${r.perf.win}% 수익 · 평균 ${r.perf.avg >= 0 ? '+' : ''}${r.perf.avg}%` : '과거 기록 없음';
     return `
       <section class="card" style="padding:14px 16px" onclick="location.href='?code=${r.code}&name=${encodeURIComponent(r.name)}'">

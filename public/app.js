@@ -233,9 +233,13 @@
         </div>` : '';
     const perfRows = perf.trades.map(t => `<tr><td>${dateK(t.et)}</td><td>${dateK(t.xt)}${t.openTrade ? '<small> ' + t.note + '</small>' : ''}</td><td class="${t.pct >= 0 ? 'pos' : 'neg'}">${pct(t.pct)}</td><td>${t.bars}${w.bar}</td></tr>`).join('');
     const nowIs = A.pending && L.state === 'up' ? 'turn' : (A.state === 'up' && L.lastDir === 'bear' ? 'bear' : '');
-    const sline = (p, lab, k) => p.stats
-      ? `<div class="pstat" style="${nowIs === k ? 'background:#FFF1E6;border-radius:10px;padding:6px 8px' : ''}"><span><b>${lab}</b>${nowIs === k ? ' ← 지금 자리' : ''}</span><span>${p.stats.n}번</span><span>승률 <b>${p.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${p.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(p.stats.avg)}</b></span><span>손익비 <b class="${p.stats.pf >= 1 ? 'pos' : 'neg'}">${p.stats.pf >= 99 ? '손해 없음' : p.stats.pf.toFixed(1)}</b></span></div>`
-      : `<div class="pstat"><span><b>${lab}</b></span><span>끝난 매매 없음</span></div>`;
+    const t10 = (() => { const k = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, ''); return String(+k.slice(0, 4) - 10) + k.slice(4); })();
+    const pfTxt = x => x.pf >= 99 ? '손해 없음' : x.pf.toFixed(1);
+    const sline = (p, lab, k) => {
+      if (!p.stats) return `<div class="pstat"><span><b>${lab}</b></span><span>끝난 매매 없음</span></div>`;
+      const r10 = E.statsOf(p.allTrades, t10);
+      return `<div class="pstat" style="${nowIs === k ? 'background:#FFF1E6;border-radius:10px;padding:6px 8px' : ''}"><span><b>${lab}</b>${nowIs === k ? ' ← 지금 자리' : ''}</span><span>${p.stats.n}번</span><span>승률 <b>${p.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${p.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(p.stats.avg)}</b></span><span>손익비 <b class="${p.stats.pf >= 1 ? 'pos' : 'neg'}">${pfTxt(p.stats)}</b></span>${r10 && r10.n !== p.stats.n ? `<span>최근 10년만: ${r10.n}번 · 평균 ${pct(r10.avg)} · 손익비 <b class="${r10.pf >= 1 ? 'pos' : 'neg'}">${pfTxt(r10)}</b></span>` : ''}</div>`;
+    };
     const perfStat = sline(perf, `넘은 ${w.bar} 종가에 샀으면`, 'turn') + sline(perfB, '음봉마다 샀으면', 'bear') + ((perf.stats && perf.stats.n < 5) || (perfB.stats && perfB.stats.n < 5) ? `<p class="note" style="margin:2px 0 6px">5번 안 되는 건 우연이 많이 섞인다 — 참고만.</p>` : '');
     return `
       <section class="card">

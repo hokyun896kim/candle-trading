@@ -52,13 +52,17 @@ async function one(s) {
   const st = p => p.stats ? { n: p.stats.n, win: Math.round(p.stats.win), avg: +p.stats.avg.toFixed(1), pf: +p.stats.pf.toFixed(2) } : null;
   const mB = m.slice(0, mp ? -1 : undefined), wB = w.slice(0, wp ? -1 : undefined);
   const perf = E.performance(mB, mFix, 9999, 'turn', COST);
-  const pm = { turn: st(perf), bear: st(E.performance(mB, mFix, 9999, 'bear', COST)) };
+  const since10 = String(+ymd(new Date()).slice(0, 4) - 10) + ymd(new Date()).slice(4);
+  const pB = E.performance(mB, mFix, 9999, 'bear', COST);
+  const st10 = p => { const x = E.statsOf(p.trades, since10); return x ? { n: x.n, win: Math.round(x.win), avg: +x.avg.toFixed(1), pf: +x.pf.toFixed(2) } : null; };
+  const pm = { turn: st(perf), bear: st(pB) };
+  const pm10 = { turn: st10(perf), bear: st10(pB) };
   const pw = { turn: st(E.performance(wB, wFix, 9999, 'turn', COST)), bear: st(E.performance(wB, wFix, 9999, 'bear', COST)) };
   const lastEv = [...mFix.events].reverse().find(e => ['up', 'down', 'doubleTop'].includes(e.type));
   return { ...s, m: { fix: brief(mFix), live: brief(mLive), partial: mp, lastEv: lastEv ? { t: lastEv.t, type: lastEv.type, level: lastEv.level } : null },
     w: { fix: brief(wFix), live: brief(wLive), partial: wp },
     perf: perf.stats ? { n: perf.stats.n, win: +perf.stats.win.toFixed(0), avg: +perf.stats.avg.toFixed(1), med: +perf.stats.med.toFixed(1) } : null,
-    pm, pw, mFrom: mB[0].t.slice(0, 4),
+    pm, pm10, pw, mFrom: mB[0].t.slice(0, 4),
     mo12: m.length >= 13 ? +((m[m.length - 1].c / m[m.length - 13].c - 1) * 100).toFixed(1) : null };
 }
 async function pool(items, fn, k) { const out = []; let i = 0; await Promise.all(Array.from({ length: k }, async () => { while (i < items.length) { const it = items[i++]; try { out.push(await fn(it)); } catch (e) { out.push(null); } } })); return out; }
