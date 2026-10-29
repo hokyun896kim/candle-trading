@@ -23,7 +23,7 @@
     end: '상승 중이던 종목인데 이번 달 음봉이 <b>지난 양봉 저가 밑으로 내려와 있는</b> 종목. 월말 종가가 그 밑이면 끝난 거다. 그 음봉에 던지지 말고 <b>다음 양봉 올 때 판다</b>. 양봉이 지난 음봉 고가 다시 넘기 전까진 반등마다 판다.',
     buy: '상승 중인데 이번 달 음봉이고, 지난 양봉 저가는 안 깬 종목. <b>월말에 음봉으로 끝나면 그 종가에 산다</b>. 양봉이 음봉 이긴 뒤 <b>첫 번째 음봉</b>이 제일 좋다(실측 손익비 3.9). 2번째 3.2, 3번째 2.6, 4번째부터 2.2로 갈수록 힘 빠진다.',
     hold: '상승 중. 양봉이면 다음 음봉 기다리고, 음봉 고가가 낮아졌으면(쌍봉) 더 안 산다.',
-    top: '🔥·🎯 사는 쪽 종목만 점수 매겨 위에서 15개. <b>🔥은 월말 종가가 음봉 고가 위여야 다음 달부터 사는 거고, 🎯은 월말에 음봉으로 끝나면 그 종가에 사는 거다.</b><br>점수: 주봉 조합(🔥은 주봉도 상승 양봉, 🎯은 주봉 하락 중일 때 실측으로 제일 남았다) · 상승 시작 뒤 몇 번째 음봉인지(1번째 +, 3번째부터 −) · 깨면 파는 선이 가까운지 · 코스피 중형 감점 · 그 종목 과거 성적.',
+    top: '🔥·🎯 사는 쪽 종목만 점수 매겨 위에서 15개. <b>🔥은 월말 종가가 음봉 고가 위여야 다음 달부터 사는 거고, 🎯은 월말에 음봉으로 끝나면 그 종가에 사는 거다.</b><br>점수: 주봉 조합(🔥은 주봉도 상승 양봉, 🎯은 주봉 하락 중일 때 실측으로 제일 남았다) · 상승 시작 뒤 몇 번째 음봉인지(1번째 +, 3번째부터 −) · 깨면 파는 선이 먼지(멀수록 더 남았다) · 코스피 중형 감점 · 그 종목 과거 성적.<br>상승 시작 뒤 <b>4번째 음봉부터</b>나 시작가보다 <b>두 배 넘게 오른 뒤</b> 음봉은 여기서 뺐다(🎯 목록엔 있다).',
     all: ''
   };
 
@@ -38,18 +38,18 @@
     if (mk !== 'ALL') rows = rows.filter(r => r.market === mk);
     if (q) rows = rows.filter(r => r.name.includes(q) || r.code.includes(q));
     if (filter === 'top') {
-      rows = rows.filter(r => r.cls === 'turn' || r.cls === 'buy').map(r => ({ ...r, sc: score(r) }));
+      rows = rows.filter(r => (r.cls === 'turn' || r.cls === 'buy') && !late(r)).map(r => ({ ...r, sc: score(r) }));
       rows.sort((a, b) => b.sc.s - a.sc.s || b.sc.down - a.sc.down);
       rows = rows.slice(0, 15);
     } else {
       if (filter !== 'all') rows = rows.filter(r => r.cls === filter);
       const order = { turn: 0, buy: 1, end: 2, hold: 3, out: 4 };
-      rows.sort((a, b) => order[a.cls] - order[b.cls] || (a.cls === 'buy' ? (b.m.live.first - a.m.live.first) : 0) || (a.cls === 'turn' ? margin(b) - margin(a) : 0) || a.rank - b.rank);
+      rows.sort((a, b) => order[a.cls] - order[b.cls] || (a.cls === 'buy' ? ((a.m.live.nth || 9) - (b.m.live.nth || 9) || (b.m.live.first - a.m.live.first)) : 0) || (a.cls === 'turn' ? margin(b) - margin(a) : 0) || a.rank - b.rank);
     }
     const kWarn = DATA.kospi && DATA.kospi.gateLive && DATA.kospi.gateLive.code === 'closed' ? '<br>⚠ <b>코스피 월봉이 지금 하락 쪽이다.</b> 월말 종가로 그게 확정되면 아래 순위는 전부 새로 안 사는 게 강사 규칙이다.' : '';
     $('#scan-note').innerHTML = NOTE[filter] ? `<div class="live" style="background:${filter === 'turn' || filter === 'top' ? '#FFF1E6' : filter === 'end' ? '#EAF2FF' : 'var(--bg2)'}"><div class="t">${NOTE[filter]}${filter === 'top' ? kWarn : ''}</div></div>` : '';
     const counts = DATA.rows.reduce((o, r) => { const c = classify(r); o[c] = (o[c] || 0) + 1; return o; }, {});
-    counts.top = Math.min(15, (counts.turn || 0) + (counts.buy || 0));
+    counts.top = Math.min(15, DATA.rows.filter(r => { const c = classify(r); return (c === 'turn' || c === 'buy') && !late({ ...r, cls: c }); }).length);
     $('#scan-seg').querySelectorAll('button').forEach(b => { const f = b.dataset.f; if (!b.dataset.label) b.dataset.label = b.textContent.trim(); b.textContent = `${b.dataset.label} ${f === 'all' ? DATA.rows.length : (counts[f] || 0)}`; });
     $('#scan-list').innerHTML = rows.length ? rows.map((r, i) => card(r, filter === 'top' ? i + 1 : 0)).join('') : '<div class="card loading">해당 없음</div>';
   }
@@ -82,9 +82,9 @@
       if (l.upP && l.close / l.upP > 2) { s -= 1; why.push(`상승 시작 뒤 이미 +${Math.round((l.close / l.upP - 1) * 100)}%`); }
       if (l.dt) { s -= 3; why.push('음봉 고가 낮아짐(쌍봉)'); }
     }
-    if (down > -8) { s += 2; why.push(`깨면 파는 선 ${down.toFixed(0)}% — 가깝다`); }
-    else if (down > -15) { s += 1; why.push(`깨면 파는 선 ${down.toFixed(0)}%`); }
-    else if (down < -30) { s -= 2; why.push(`깨면 파는 선 ${down.toFixed(0)}% — 멀다`); }
+    // 실측(월봉 450종목): 깨면 파는 선이 멀수록(=앞 양봉이 크게 올라온 자리) 더 남았다. 8% 이내 2.5 · 15~30% 3.1 · 30% 넘게 4.0
+    if (down < -30) { s += 1; why.push(`깨면 파는 선 ${down.toFixed(0)}% — 앞 양봉이 크게 올라온 자리 👍`); }
+    else if (down > -15) { s -= 1; why.push(`깨면 파는 선 ${down.toFixed(0)}% — 가까운 건 오히려 덜 남았다`); }
     else why.push(`깨면 파는 선 ${down.toFixed(0)}%`);
     if (mid) { s -= 2; why.push('코스피 중형 — 남는 게 적은 구간'); }
     const p = r.perf;
@@ -96,6 +96,8 @@
     return { s, why, down };
   }
 
+  // 너무 늦은 눌림: 상승 시작 뒤 4번째 음봉부터, 또는 시작가의 두 배 넘게 오른 뒤 → ⭐추천에서 뺀다 (🎯 목록엔 남김)
+  function late(r) { const l = r.m.live; return r.cls === 'buy' && ((l.nth || 0) >= 4 || (l.upP && l.close / l.upP > 2)); }
   function margin(r) { const l = r.m.live, f = r.m.fix; return f.brk ? (l.close / f.brk - 1) * 100 : 0; }
 
   function card(r, rank) {
