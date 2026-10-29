@@ -23,7 +23,7 @@
     end: '상승 중이던 종목인데 이번 달 음봉이 <b>지난 양봉 저가 밑으로 내려와 있는</b> 종목. 월말 종가가 그 밑이면 끝난 거다. 그 음봉에 던지지 말고 <b>다음 양봉 올 때 판다</b>. 양봉이 지난 음봉 고가 다시 넘기 전까진 반등마다 판다.',
     buy: '상승 중인데 이번 달 음봉이고, 지난 양봉 저가는 안 깬 종목. <b>월말에 음봉으로 끝나면 그 종가에 산다</b>. 양봉이 음봉 이긴 뒤 <b>첫 번째 음봉</b>이 제일 좋다(실측 손익비 3.9). 2번째 3.2, 3번째 2.6, 4번째부터 2.2로 갈수록 힘 빠진다.',
     hold: '상승 중. 양봉이면 다음 음봉 기다리고, 음봉 고가가 낮아졌으면(쌍봉) 더 안 산다.',
-    top: '🔥·🎯 사는 쪽 종목만 점수 매겨 위에서 15개. <b>🔥은 월말 종가가 음봉 고가 위여야 다음 달부터 사는 거고, 🎯은 월말에 음봉으로 끝나면 그 종가에 사는 거다.</b><br>점수: 주봉 조합(🔥은 주봉도 상승 양봉, 🎯은 주봉 하락 중일 때 실측으로 제일 남았다) · 상승 시작 뒤 몇 번째 음봉인지(1번째 +, 3번째부터 −) · 깨면 파는 선이 먼지(멀수록 더 남았다) · 코스피 중형 감점 · 그 종목 과거 성적.<br>상승 시작 뒤 <b>4번째 음봉부터</b>나 시작가보다 <b>두 배 넘게 오른 뒤</b> 음봉은 여기서 뺐다(🎯 목록엔 있다).',
+    top: '🔥·🎯 사는 쪽 종목만 점수 매겨 위에서 15개. <b>🔥은 월말 종가가 음봉 고가 위여야 다음 달부터 사는 거고, 🎯은 월말에 음봉으로 끝나면 그 종가에 사는 거다.</b><br>점수: 주봉 조합(🔥은 주봉도 상승 양봉, 🎯은 주봉 하락 중일 때 실측으로 제일 남았다) · 상승 시작 뒤 몇 번째 음봉인지(1번째 +, 3번째부터 −) · 깨면 파는 선이 먼지(멀수록 더 남았다) · 코스피 중형 감점 · <b>이 종목에서 지금이랑 같은 매매(🔥은 넘은 달 종가 매수, 🎯은 음봉 매수)를 했을 때 성적</b>.<br>상승 시작 뒤 <b>4번째 음봉부터</b>나 시작가보다 <b>두 배 넘게 오른 뒤</b> 음봉, 그리고 <b>이 종목에서 같은 매매를 5번 넘게 했는데 손해</b>였던 건 여기서 뺐다(🎯·🔥 목록엔 있다).',
     all: ''
   };
 
@@ -38,7 +38,7 @@
     if (mk !== 'ALL') rows = rows.filter(r => r.market === mk);
     if (q) rows = rows.filter(r => r.name.includes(q) || r.code.includes(q));
     if (filter === 'top') {
-      rows = rows.filter(r => (r.cls === 'turn' || r.cls === 'buy') && !late(r)).map(r => ({ ...r, sc: score(r) }));
+      rows = rows.filter(r => (r.cls === 'turn' || r.cls === 'buy') && !skip(r)).map(r => ({ ...r, sc: score(r) }));
       rows.sort((a, b) => b.sc.s - a.sc.s || b.sc.down - a.sc.down);
       rows = rows.slice(0, 15);
     } else {
@@ -49,7 +49,7 @@
     const kWarn = DATA.kospi && DATA.kospi.gateLive && DATA.kospi.gateLive.code === 'closed' ? '<br>⚠ <b>코스피 월봉이 지금 하락 쪽이다.</b> 월말 종가로 그게 확정되면 아래 순위는 전부 새로 안 사는 게 강사 규칙이다.' : '';
     $('#scan-note').innerHTML = NOTE[filter] ? `<div class="live" style="background:${filter === 'turn' || filter === 'top' ? '#FFF1E6' : filter === 'end' ? '#EAF2FF' : 'var(--bg2)'}"><div class="t">${NOTE[filter]}${filter === 'top' ? kWarn : ''}</div></div>` : '';
     const counts = DATA.rows.reduce((o, r) => { const c = classify(r); o[c] = (o[c] || 0) + 1; return o; }, {});
-    counts.top = Math.min(15, DATA.rows.filter(r => { const c = classify(r); return (c === 'turn' || c === 'buy') && !late({ ...r, cls: c }); }).length);
+    counts.top = Math.min(15, DATA.rows.filter(r => { const c = classify(r); return (c === 'turn' || c === 'buy') && !skip({ ...r, cls: c }); }).length);
     $('#scan-seg').querySelectorAll('button').forEach(b => { const f = b.dataset.f; if (!b.dataset.label) b.dataset.label = b.textContent.trim(); b.textContent = `${b.dataset.label} ${f === 'all' ? DATA.rows.length : (counts[f] || 0)}`; });
     $('#scan-list').innerHTML = rows.length ? rows.map((r, i) => card(r, filter === 'top' ? i + 1 : 0)).join('') : '<div class="card loading">해당 없음</div>';
   }
@@ -87,16 +87,28 @@
     else if (down > -15) { s -= 1; why.push(`깨면 파는 선 ${down.toFixed(0)}% — 가까운 건 오히려 덜 남았다`); }
     else why.push(`깨면 파는 선 ${down.toFixed(0)}%`);
     if (mid) { s -= 2; why.push('코스피 중형 — 남는 게 적은 구간'); }
-    const p = r.perf;
-    if (p && p.n >= 3) {
-      if (p.avg >= 20 && p.win >= 50) { s += 2; why.push(`과거 ${p.n}번 중 ${p.win}% 이김·평균 +${p.avg.toFixed(0)}% 👍`); }
-      else if (p.avg < 0) { s -= 2; why.push(`과거 평균 ${p.avg.toFixed(0)}%`); }
-      else why.push(`과거 ${p.n}번 중 ${p.win}% 이김·평균 ${p.avg >= 0 ? '+' : ''}${p.avg.toFixed(0)}%`);
+    // 이 종목에서 지금 자리랑 같은 매매를 과거에 했으면 (🔥=넘은 달 종가 매수, 🎯=음봉 매수 · 비용 0.25% 뺌)
+    const P = mine(r);
+    if (P && P.n >= 5) {
+      if (P.pf < 1) { s -= 3; why.push(`이 종목에서 ${P.lab} ${P.n}번 해보니 손익비 ${P.pf} — 안 먹혔다`); }
+      else if (P.pf >= 4 && P.avg >= 15) { s += 2; why.push(`이 종목에서 ${P.lab} ${P.n}번 · 승률 ${P.win}% · 평균 +${P.avg.toFixed(0)}% · 손익비 ${P.pf} 👍`); }
+      else if (P.pf >= 2) { s += 1; why.push(`이 종목에서 ${P.lab} ${P.n}번 · 손익비 ${P.pf}`); }
+      else why.push(`이 종목에서 ${P.lab} ${P.n}번 · 손익비 ${P.pf} — 약함`);
+    } else if (P) why.push(`이 종목 기록 ${P.n}번뿐 (${r.mFrom}년부터) — 판단 보류`);
+    else if (r.perf && r.perf.n >= 3) {   // 옛 scan.json
+      const p = r.perf; if (p.avg >= 20 && p.win >= 50) s += 2; else if (p.avg < 0) s -= 2;
+      why.push(`과거 ${p.n}번 중 ${p.win}% 이김·평균 ${p.avg >= 0 ? '+' : ''}${p.avg.toFixed(0)}%`);
     }
+    const Q = weekly(r);
+    if (Q && P && P.n >= 5 && P.pf < 1.5 && Q.n >= 10 && Q.pf >= 2) why.push(`이 종목은 주봉이 더 맞았다(주봉 ${Q.lab} ${Q.n}번 손익비 ${Q.pf})`);
     return { s, why, down };
   }
 
   // 너무 늦은 눌림: 상승 시작 뒤 4번째 음봉부터, 또는 시작가의 두 배 넘게 오른 뒤 → ⭐추천에서 뺀다 (🎯 목록엔 남김)
+  function mine(r) { if (!r.pm) return null; const t = r.cls === 'turn' ? r.pm.turn : r.pm.bear; return t ? { ...t, lab: r.cls === 'turn' ? '넘은 달 종가 매수' : '음봉 매수' } : null; }
+  function weekly(r) { if (!r.pw) return null; const t = r.cls === 'turn' ? r.pw.turn : r.pw.bear; return t ? { ...t, lab: r.cls === 'turn' ? '넘은 주 종가 매수' : '음봉 매수' } : null; }
+  // ⭐추천에서 빼는 것: 늦은 눌림, 또는 이 종목에서 같은 매매가 5번 넘게 해서 손해였던 것
+  function skip(r) { const P = mine(r); return late(r) || !!(P && P.n >= 5 && P.pf < 1); }
   function late(r) { const l = r.m.live; return r.cls === 'buy' && ((l.nth || 0) >= 4 || (l.upP && l.close / l.upP > 2)); }
   function margin(r) { const l = r.m.live, f = r.m.fix; return f.brk ? (l.close / f.brk - 1) * 100 : 0; }
 
@@ -111,7 +123,9 @@
     else if (r.cls === 'hold') line = `${l.dir === 'bull' ? '양봉 중 — 다음 음봉 오면 산다' : (l.dt ? '음봉 고가 낮아짐(쌍봉) — 더 안 산다' : '음봉 — 지난 양봉 저가 깨는 중')} · 깨면 파는 선 ${E.fmt(f.hold)}${l.dir === 'bull' && l.holdNext != null ? ' → 이 양봉 끝나면 ' + E.fmt(l.holdNext) : ''}`;
     else line = `하락 중 · 양봉이 ${E.fmt(f.brk)} 넘어야 산다 (${((f.brk / l.close - 1) * 100).toFixed(1)}% 위)${l.accel ? ' · ⚠ 더 큰 음봉 올 수 있다' : ''}`;
     const ev = r.m.lastEv ? `${r.m.lastEv.t.slice(2, 4)}.${r.m.lastEv.t.slice(4, 6)}에 ${r.m.lastEv.type === 'up' ? '상승 시작' : r.m.lastEv.type === 'down' ? '하락 시작' : '쌍봉'}` : '';
-    const perf = r.perf ? `과거 ${r.perf.n}번 중 ${r.perf.win}% 수익 · 평균 ${r.perf.avg >= 0 ? '+' : ''}${r.perf.avg}%` : '과거 기록 없음';
+    const P = (r.cls === 'turn' || r.cls === 'buy') ? mine(r) : (r.pm ? { ...r.pm.turn, lab: '넘은 달 종가 매수' } : null);
+    const perf = P && P.n ? `이 종목 월봉 ${P.lab}: ${P.n}번 · 승률 ${P.win}% · 평균 ${P.avg >= 0 ? '+' : ''}${P.avg}% · 손익비 ${P.pf}`
+      : r.perf ? `과거 ${r.perf.n}번 중 ${r.perf.win}% 수익 · 평균 ${r.perf.avg >= 0 ? '+' : ''}${r.perf.avg}%` : '과거 기록 없음';
     return `
       <section class="card" style="padding:14px 16px" onclick="location.href='?code=${r.code}&name=${encodeURIComponent(r.name)}'">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">

@@ -138,32 +138,38 @@
     return summary;
   }
 
-  // 과거 신호 성과: 상승 전환 종가 매수 → 하락 전환 뒤 첫 양봉 종가 매도
-  function performance(bars, summary, maxRows) {
+  // 과거 신호 성과 — 파는 건 둘 다 같다: 음봉이 앞 양봉 저가 깬 뒤 첫 양봉 종가
+  //   mode 'turn' : 양봉 종가가 앞 음봉 고가 넘은 그 봉 종가에 산다 (상승 한 번에 1회)
+  //   mode 'bear' : 상승 중 음봉 덩어리 첫 봉 종가마다 산다 (쌍봉 경고 걸린 건 안 삼)
+  //   cost        : 왕복 비용(%) — 수익률에서 뺀다
+  function performance(bars, summary, maxRows, mode, cost) {
+    mode = mode || 'turn'; cost = cost || 0;
     const ev = summary.events;
     const trades = [];
-    let open = null;
+    let opens = [];
+    const exitAfter = (i) => { for (let j = i + 1; j < bars.length; j++) if (bars[j].c >= bars[j].o) return j; return -1; };
     for (let k = 0; k < ev.length; k++) {
       const e = ev[k];
-      if (e.type === 'up' && !open) open = { ei: e.i, et: e.t, ep: e.price };
-      else if (e.type === 'down' && open) {
-        // 다음 양봉 찾기
-        let xi = -1;
-        for (let j = e.i + 1; j < bars.length; j++) if (bars[j].c >= bars[j].o) { xi = j; break; }
-        if (xi < 0) { trades.push({ ...open, xi: bars.length - 1, xt: bars[bars.length - 1].t, xp: bars[bars.length - 1].c, openTrade: true, note: '매도 대기' }); open = null; break; }
-        trades.push({ ...open, xi, xt: bars[xi].t, xp: bars[xi].c });
-        open = null;
+      if (mode === 'turn' && e.type === 'up' && !opens.length) opens.push({ ei: e.i, et: e.t, ep: e.price });
+      else if (mode === 'bear' && e.type === 'buy' && e.first && !e.blocked) opens.push({ ei: e.i, et: e.t, ep: e.price, nth: e.nth });
+      else if (e.type === 'down' && opens.length) {
+        const xi = exitAfter(e.i);
+        if (xi < 0) { opens.forEach(o => trades.push({ ...o, xi: bars.length - 1, xt: bars[bars.length - 1].t, xp: bars[bars.length - 1].c, openTrade: true, note: '매도 대기' })); opens = []; break; }
+        opens.forEach(o => trades.push({ ...o, xi, xt: bars[xi].t, xp: bars[xi].c }));
+        opens = [];
       }
     }
-    if (open) trades.push({ ...open, xi: bars.length - 1, xt: bars[bars.length - 1].t, xp: bars[bars.length - 1].c, openTrade: true, note: '보유 중' });
-    trades.forEach(t => { t.pct = (t.xp / t.ep - 1) * 100; t.bars = t.xi - t.ei; });
+    opens.forEach(o => trades.push({ ...o, xi: bars.length - 1, xt: bars[bars.length - 1].t, xp: bars[bars.length - 1].c, openTrade: true, note: '보유 중' }));
+    trades.forEach(t => { t.pct = (t.xp / t.ep - 1) * 100 - cost; t.bars = t.xi - t.ei; });
     const closed = trades.filter(t => !t.openTrade);
     const pcts = closed.map(t => t.pct).sort((a, b) => a - b);
+    const gw = closed.filter(t => t.pct > 0).reduce((a, t) => a + t.pct, 0), gl = -closed.filter(t => t.pct <= 0).reduce((a, t) => a + t.pct, 0);
     const stats = closed.length ? {
       n: closed.length,
       win: closed.filter(t => t.pct > 0).length / closed.length * 100,
       avg: closed.reduce((a, t) => a + t.pct, 0) / closed.length,
       med: pcts[Math.floor(pcts.length / 2)],
+      pf: gl > 0 ? gw / gl : (gw > 0 ? 99 : 0),
       avgBars: closed.reduce((a, t) => a + t.bars, 0) / closed.length
     } : null;
     return { trades: trades.slice(-(maxRows || 8)).reverse(), stats, total: trades.length };

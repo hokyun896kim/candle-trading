@@ -219,7 +219,7 @@
     if (A.pending) { f.action = L.state === 'up' ? `⏳ ${w.this} 양봉이 앞 음봉 고가 ${E.fmt(S.breakLine)} 넘는 중 — ${w.closeAt} 보고 결정` : `⏳ ${w.this} 음봉이 앞 양봉 저가 ${E.fmt(L.holdLine)} 깨는 중 — ${w.closeAt} 보고 결정`; f.chip = 'y'; }
     const dirTxt = (A.lastDir === 'bull' ? '양봉' : '음봉') + ` ${A.curBlock.n}개째` + (J.partial ? ' (아직 안 끝남)' : '');
     const evs = S.events.filter(e => ['up', 'down', 'doubleTop', 'accel'].includes(e.type)).slice(-6).reverse();
-    const perf = E.performance(J.bars, L, 8);
+    const perf = E.performance(J.bars, L, 8, 'turn', 0.25), perfB = E.performance(J.bars, L, 8, 'bear', 0.25);
     const nowBear = J.partial && S.lastDir === 'bull' && L.lastDir === 'bear' && S.holdLineNext != null;
     const hl = nowBear ? S.holdLineNext : S.holdLine;
     const kv = S.state === 'up'
@@ -232,7 +232,11 @@
           <div class="t">${w.closeAt}가 이대로면 → <b>${l.stTxt}</b> · ${l.action}${L.state === 'up' && L.holdLine != null ? ` · 깨면 파는 선 ${E.fmt(L.holdLine)}` : ''}${L.state === 'down' && L.breakLine != null ? ` · 넘으면 사는 선 ${E.fmt(L.breakLine)}` : ''}</div>
         </div>` : '';
     const perfRows = perf.trades.map(t => `<tr><td>${dateK(t.et)}</td><td>${dateK(t.xt)}${t.openTrade ? '<small> ' + t.note + '</small>' : ''}</td><td class="${t.pct >= 0 ? 'pos' : 'neg'}">${pct(t.pct)}</td><td>${t.bars}${w.bar}</td></tr>`).join('');
-    const perfStat = perf.stats ? `<div class="pstat"><span>신호 ${perf.total}회</span><span>승률 <b>${perf.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${perf.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.avg)}</b></span><span>중앙 <b class="${perf.stats.med >= 0 ? 'pos' : 'neg'}">${pct(perf.stats.med)}</b></span><span>평균 ${perf.stats.avgBars.toFixed(0)}봉</span></div>` : '<div class="pstat"><span>완료된 거래 없음</span></div>';
+    const nowIs = A.pending && L.state === 'up' ? 'turn' : (A.state === 'up' && L.lastDir === 'bear' ? 'bear' : '');
+    const sline = (p, lab, k) => p.stats
+      ? `<div class="pstat" style="${nowIs === k ? 'background:#FFF1E6;border-radius:10px;padding:6px 8px' : ''}"><span><b>${lab}</b>${nowIs === k ? ' ← 지금 자리' : ''}</span><span>${p.stats.n}번</span><span>승률 <b>${p.stats.win.toFixed(0)}%</b></span><span>평균 <b class="${p.stats.avg >= 0 ? 'pos' : 'neg'}">${pct(p.stats.avg)}</b></span><span>손익비 <b class="${p.stats.pf >= 1 ? 'pos' : 'neg'}">${p.stats.pf >= 99 ? '손해 없음' : p.stats.pf.toFixed(1)}</b></span></div>`
+      : `<div class="pstat"><span><b>${lab}</b></span><span>끝난 매매 없음</span></div>`;
+    const perfStat = sline(perf, `넘은 ${w.bar} 종가에 샀으면`, 'turn') + sline(perfB, '음봉마다 샀으면', 'bear') + ((perf.stats && perf.stats.n < 5) || (perfB.stats && perfB.stats.n < 5) ? `<p class="note" style="margin:2px 0 6px">5번 안 되는 건 우연이 많이 섞인다 — 참고만.</p>` : '');
     return `
       <section class="card">
         <h2>${title}</h2>
@@ -245,7 +249,7 @@
         ${liveBlock}
         <div id="chart-${key}" class="chart"></div>
         <ul class="ev">${evs.map(e => `<li><span class="d">${dateK(e.t)}</span><span class="tag ${e.type === 'up' ? 'up' : e.type === 'down' ? 'down' : e.type === 'accel' ? 'ac' : 'dt'}">${e.type === 'up' ? '양봉이 이김' : e.type === 'down' ? '음봉이 깸' : e.type === 'accel' ? '또 음봉' : '고가 낮아짐'}</span><span>${e.type === 'up' ? '양봉 종가 ' + E.fmt(e.price) + ' > 앞 음봉 고가 ' + E.fmt(e.level) + ' → 상승 시작' : e.type === 'down' ? '음봉 종가 ' + E.fmt(e.price) + ' < 앞 양봉 저가 ' + E.fmt(e.level) + ' → 하락 시작' : e.type === 'accel' ? '양봉이 ' + E.fmt(e.level) + ' 못 넘고 또 음봉' : '음봉 고가가 ' + E.fmt(e.level) + ' 못 넘고 낮아짐(쌍봉)'}</span></li>`).join('') || '<li><span class="d">-</span>신호 없음</li>'}</ul>
-        <h3 style="margin-top:14px">이 종목에서 과거에 이렇게 했으면 <span class="note" style="display:inline">양봉이 음봉 이긴 ${w.bar} 종가에 사서, 음봉이 양봉 깬 뒤 첫 양봉 종가에 판 결과</span></h3>
+        <h3 style="margin-top:14px">이 종목에서 과거에 이렇게 했으면 <span class="note" style="display:inline">파는 건 둘 다 음봉이 양봉 깬 뒤 첫 양봉 종가 · 수수료·세금 0.25% 뺌 · 아래 표는 넘은 ${w.bar} 종가 매수</span></h3>
         ${perfStat}
         <table class="perf"><tr><th>샀을 때</th><th>팔았을 때</th><th>수익</th><th>기간</th></tr>${perfRows || '<tr><td colspan="4">-</td></tr>'}</table>
       </section>`;
