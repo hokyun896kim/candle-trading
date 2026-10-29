@@ -38,7 +38,7 @@ function isPartial(tf, lastT) {
 }
 function brief(S) {
   return { state: S.state, dir: S.lastDir, n: S.curBlock ? S.curBlock.n : 0, close: S.lastBar.c, t: S.lastBar.t,
-    hold: S.holdLine, holdNext: S.holdLineNext, brk: S.breakLine, buyOK: S.buyOK, first: S.firstBear, dt: S.doubleTop, accel: S.accel, sellB: S.sellBounce };
+    hold: S.holdLine, holdNext: S.holdLineNext, brk: S.breakLine, buyOK: S.buyOK, first: S.firstBear, nth: S.pullNo, upT: S.upT, upP: S.upP, dt: S.doubleTop, accel: S.accel, sellB: S.sellBounce };
 }
 async function one(s) {
   const [m, w] = await Promise.all([bars(s.code, 'month', 12), bars(s.code, 'week', 3)]);

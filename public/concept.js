@@ -66,7 +66,7 @@
   ], {
     groups: [{ from: 6, to: 7, label: '직전 음봉블록', color: BLUE }],
     lines: [{ y: 64, from: 6, to: 11, label: '음봉블록 고점 64' }],
-    labels: [{ i: 9, text: '종가 67 > 64 → 게이트', above: true, arrow: true }, { i: 2, text: '반등뿐', above: true, color: GR }],
+    labels: [{ i: 9, text: '종가 67 > 64 → 상승 시작', above: true, arrow: true }, { i: 2, text: '반등뿐', above: true, color: GR }],
     cap: '내려올 땐 양봉이 직전 음봉을 못 이긴다. 넘는 순간 상승 전환.'
   });
 
@@ -75,10 +75,10 @@
     K(58, 62), K(62, 67), K(67, 65, 1, 1), K(65, 64, 1, 1), K(64, 69), K(69, 73), K(73, 71, 1, 1), K(71, 76), K(76, 75, 1, 1), K(75, 72, 1, 1), K(72, 78)
   ], {
     groups: [{ from: 0, to: 1, label: '양봉블록', color: RED }, { from: 4, to: 5, label: '양봉블록', color: RED }],
-    lines: [{ y: 57, from: 0, to: 3, label: '보유선 57', below: true }, { y: 63, from: 4, to: 10, label: '보유선 63', below: true, labelRight: true }],
-    labels: [{ i: 2, text: '첫 음봉 매수', above: true, arrow: true }, { i: 3, text: '더 많이', above: false }, { i: 6, text: '첫 음봉', above: true, arrow: true }, { i: 9, text: '눌림 매수', above: true, arrow: true }],
+    lines: [{ y: 57, from: 0, to: 3, label: '깨면 파는 선 57', below: true }, { y: 63, from: 4, to: 10, label: '깨면 파는 선 63', below: true, labelRight: true }],
+    labels: [{ i: 2, text: '첫 음봉 매수', above: true, arrow: true }, { i: 6, text: '첫 음봉', above: true, arrow: true }, { i: 9, text: '눌림 매수', above: true, arrow: true }],
     shade: [{ from: 2, to: 3, y1: 57, y2: 67 }, { from: 6, to: 9, y1: 63, y2: 77 }],
-    cap: '보유선 위에서 끝나는 음봉은 전부 매수 자리. 양봉이 새로 나오면 보유선이 그 저점으로 올라간다.'
+    cap: '앞 양봉 저가 위에서 끝나는 음봉은 전부 살 자리. 양봉이 새로 나오면 그 선이 새 양봉 저가로 올라간다.'
   });
 
   // 3. 하락 전환 + 양봉 매도
@@ -86,9 +86,9 @@
     K(70, 75), K(75, 79), K(79, 77, 1, 1), K(77, 81), K(81, 78, 1, 1), K(78, 72, 1, 2), K(72, 75, 1, 1), K(75, 70, 1, 2), K(70, 66, 1, 2), K(66, 69, 1, 1), K(69, 63, 1, 2)
   ], {
     groups: [{ from: 3, to: 3, color: RED }],
-    lines: [{ y: 76, from: 3, to: 10, label: '보유선 76 (직전 양봉 저점)', color: OR, below: true }, { y: 79, from: 5, to: 10, label: '직전 음봉 고점 79', color: BLUE, labelRight: true }],
+    lines: [{ y: 76, from: 3, to: 10, label: '앞 양봉 저가 76', color: OR, below: true }, { y: 79, from: 5, to: 10, label: '직전 음봉 고점 79', color: BLUE, labelRight: true }],
     labels: [{ i: 5, text: '종가 72 < 76 → 하락전환', above: false, arrow: true, color: BLUE }, { i: 6, text: '양봉에 매도', above: true, arrow: true }, { i: 9, text: '반등마다 매도', above: true, arrow: true }],
-    cap: '보유선 깬 음봉에 던지지 않는다. 다음 양봉 반등에 판다. 양봉이 직전 음봉 고점 넘을 때까지 계속.'
+    cap: '앞 양봉 저가 깬 음봉에 던지지 않는다. 다음 양봉 반등에 판다. 양봉이 직전 음봉 고점 넘을 때까지 계속.'
   });
 
   // 4. 쌍봉 경고
@@ -96,9 +96,9 @@
     K(60, 66), K(66, 71), K(71, 68, 1, 1), K(68, 65, 1, 1), K(65, 69, 1, 1), K(69, 71, 0.5, 1), K(71, 68, 0.5, 1), K(68, 66, 0.5, 1), K(66, 69, 1, 1), K(69, 63, 1, 2)
   ], {
     groups: [{ from: 2, to: 3, color: BLUE }, { from: 6, to: 7, color: BLUE }],
-    lines: [{ y: 72, from: 2, to: 9, label: '직전 음봉 고점 72', color: BLUE }, { y: 64, from: 4, to: 9, label: '보유선 64', color: OR, below: true }],
-    labels: [{ i: 7, text: '고점 낮아짐 = 쌍봉 경고', above: true, arrow: true, color: '#9A6B00' }, { i: 9, text: '보유선 이탈 = 확정', above: false, arrow: true, color: BLUE }],
-    cap: '양봉이 직전 음봉 고점을 못 넘고, 음봉 고점이 낮아지면 쌍봉. 추가매수 중단. 보유선까지 깨지면 끝.'
+    lines: [{ y: 72, from: 2, to: 9, label: '직전 음봉 고점 72', color: BLUE }, { y: 64, from: 4, to: 9, label: '앞 양봉 저가 64', color: OR, below: true }],
+    labels: [{ i: 7, text: '고점 낮아짐 = 쌍봉 경고', above: true, arrow: true, color: '#9A6B00' }, { i: 9, text: '저가 깨짐 = 끝', above: false, arrow: true, color: BLUE }],
+    cap: '양봉이 직전 음봉 고점을 못 넘고, 음봉 고점이 낮아지면 쌍봉. 추가매수 중단. 앞 양봉 저가까지 깨지면 끝.'
   });
 
   // 5. 2축
@@ -106,13 +106,13 @@
   el.innerHTML = `<svg viewBox="0 0 360 150" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Apple SD Gothic Neo,Noto Sans KR,sans-serif">
     <rect x="12" y="14" width="160" height="120" rx="14" fill="#FFF1E6"/>
     <text x="92" y="40" font-size="13" font-weight="800" fill="#E8600A" text-anchor="middle">주봉 = 상태</text>
-    <text x="92" y="62" font-size="11" fill="#4D5159" text-anchor="middle">게이트 열렸나?</text>
-    <text x="92" y="80" font-size="11" fill="#4D5159" text-anchor="middle">보유선 살아있나?</text>
+    <text x="92" y="62" font-size="11" fill="#4D5159" text-anchor="middle">양봉이 음봉 이겼나?</text>
+    <text x="92" y="80" font-size="11" fill="#4D5159" text-anchor="middle">앞 양봉 저가 안 깼나?</text>
     <text x="92" y="106" font-size="10.5" fill="#868B94" text-anchor="middle">금요일 종가 1회 판정</text>
     <rect x="188" y="14" width="160" height="120" rx="14" fill="#EAF2FF"/>
     <text x="268" y="40" font-size="13" font-weight="800" fill="#1B64DA" text-anchor="middle">일봉 = 타이밍</text>
     <text x="268" y="62" font-size="11" fill="#4D5159" text-anchor="middle">음봉 → 매수</text>
-    <text x="268" y="80" font-size="11" fill="#4D5159" text-anchor="middle">보유선 이탈 → 양봉 매도</text>
+    <text x="268" y="80" font-size="11" fill="#4D5159" text-anchor="middle">저가 깨지면 → 양봉에 판다</text>
     <text x="268" y="106" font-size="10.5" fill="#868B94" text-anchor="middle">주봉 허용일 때만</text>
     <path d="M172 74 L186 74" stroke="#868B94" stroke-width="2" marker-end="url(#a)"/>
     <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#868B94"/></marker></defs>

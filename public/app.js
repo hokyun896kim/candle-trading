@@ -112,7 +112,7 @@
   function effective(fixed, live, partial) {
     if (!partial) return fixed;
     if (fixed.state === live.state) return live;
-    return { ...fixed, lastDir: live.lastDir, curBlock: live.curBlock, lastBar: live.lastBar, buyOK: false, firstBear: false, doubleTop: false, sellBounce: false, accel: false, pending: true };
+    return { ...fixed, lastDir: live.lastDir, curBlock: live.curBlock, lastBar: live.lastBar, buyOK: false, firstBear: false, doubleTop: false, sellBounce: false, accel: false, pending: true, pullNo: fixed.pullNo, upT: fixed.upT, upP: fixed.upP };
   }
   async function run(code, name) {
     const out = $('#result');
@@ -190,6 +190,7 @@
       </section>`;
   }
 
+  function upTxt(t, w) { return w.bar === '달' ? `${t.slice(2, 4)}년 ${+t.slice(4, 6)}월` : `${+t.slice(4, 6)}월 ${+t.slice(6, 8)}일`; }
   function stateLine(S, w) {
     const st = S.state; w = w || { this: '이번', next: '다음', closeAt: '종가', bar: '봉' };
     const stTxt = st === 'up' ? '상승 중' : st === 'down' ? '하락 중' : '판정 없음';
@@ -197,7 +198,11 @@
     if (st === 'up') {
       if (S.lastDir === 'bear') {
         if (S.doubleTop) { action = `음봉 고가가 낮아짐(쌍봉) — 더 안 산다. 앞 양봉 저가 ${E.fmt(S.holdLine)} 지키는지만 본다`; chip = 'y'; }
-        else if (S.buyOK) { action = S.firstBear ? `${w.this} 첫 음봉 — 이 종가에 산다` : `음봉 눌림 — 이 종가에 산다`; chip = 'r'; }
+        else if (S.buyOK) {
+          const n = S.pullNo || 1, since = S.upT ? `${upTxt(S.upT, w)}에 양봉이 음봉 이긴 뒤${S.upP ? `(그때 ${E.fmt(S.upP)} → 지금 ${pct((S.lastBar.c / S.upP - 1) * 100)})` : ''} ` : '';
+          const mo = w.bar === '달';
+          action = `${since}${n}번째 음봉 — 이 종가에 산다${n === 1 ? ' (제일 좋은 자리)' : mo && n >= 3 ? ' (많이 오른 뒤라 힘 빠진 자리)' : ''}`; chip = mo && n >= 3 ? 'y' : 'r';
+        }
         else { action = `앞 양봉 저가 ${E.fmt(S.holdLine)} 깨짐`; chip = 'y'; }
       } else { action = `양봉 중 — 들고 간다. ${w.next} 음봉 오면 산다`; chip = 'g'; }
     } else if (st === 'down') {
@@ -215,8 +220,10 @@
     const dirTxt = (A.lastDir === 'bull' ? '양봉' : '음봉') + ` ${A.curBlock.n}개째` + (J.partial ? ' (아직 안 끝남)' : '');
     const evs = S.events.filter(e => ['up', 'down', 'doubleTop', 'accel'].includes(e.type)).slice(-6).reverse();
     const perf = E.performance(J.bars, L, 8);
+    const nowBear = J.partial && S.lastDir === 'bull' && L.lastDir === 'bear' && S.holdLineNext != null;
+    const hl = nowBear ? S.holdLineNext : S.holdLine;
     const kv = S.state === 'up'
-      ? `<div class="box"><div class="k">앞 양봉 저가 — 여기 깨면 판다</div><div class="v" style="color:var(--orange-deep)">${E.fmt(S.holdLine)}</div><div class="s">${S.holdLineNext != null && S.holdLineNext !== S.holdLine ? '이 양봉 끝나면 ' + E.fmt(S.holdLineNext) + '로 올라감' : (S.holdLine != null ? '여기까지 ' + pct((last.c / S.holdLine - 1) * 100) : '')}</div></div>`
+      ? `<div class="box"><div class="k">앞 양봉 저가 — 여기 깨면 판다</div><div class="v" style="color:var(--orange-deep)">${E.fmt(hl)}</div><div class="s">${nowBear ? `${w.this} 음봉 기준 · 지금 ${E.fmt(L.lastBar.c)}에서 ${pct((hl / L.lastBar.c - 1) * 100)}` : S.holdLineNext != null && S.holdLineNext !== S.holdLine ? '이 양봉 끝나면 ' + E.fmt(S.holdLineNext) + '로 올라감' : (S.holdLine != null ? '여기까지 ' + pct((last.c / S.holdLine - 1) * 100) : '')}</div></div>`
       : `<div class="box"><div class="k">앞 음봉 고가 — 여기 넘으면 산다</div><div class="v" style="color:var(--blue)">${E.fmt(S.breakLine)}</div><div class="s">${S.breakLine != null ? '양봉 종가가 ' + pct((S.breakLine / last.c - 1) * 100) + ' 더 가야' : ''}</div></div>`;
     const liveBar = L.lastBar;
     const liveBlock = J.partial ? `

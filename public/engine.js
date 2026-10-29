@@ -30,6 +30,7 @@
     const events = [];      // {i, t, type, level}
     let lastBearHiForDT = null; // 쌍봉 판정용: 마지막 완료 음봉블록 고점
     let dtWarnedBlockStart = -1;
+    let pull = 0, upT = null, upP = null;   // 상승 시작 뒤 몇 번째 음봉 덩어리(눌림)인지
 
     const lastBlock = (dir) => {
       for (let k = blocks.length - 1; k >= 0; k--) if (blocks[k].dir === dir) return blocks[k];
@@ -54,7 +55,7 @@
       if (dir === 'bull') {
         // 상승 전환 판정
         if (state !== 'up' && prevBear && b.c > prevBear.hi) {
-          state = 'up';
+          state = 'up'; pull = 0; upT = b.t; upP = b.c;
           events.push({ i, t: b.t, type: 'up', level: prevBear.hi, price: b.c });
         } else if (state === 'down' && prevBear) {
           // 하락 상태에서의 양봉 = 반등 매도 자리
@@ -62,6 +63,7 @@
         }
       } else {
         // 음봉
+        if (state === 'up' && cur.n === 1) pull++;
         if (state === 'up' && prevBull) {
           if (b.c < prevBull.lo) {
             state = 'down';
@@ -77,7 +79,7 @@
               events.push({ i, t: b.t, type: 'doubleTop', level: prevBear.hi, price: b.c });
             }
             // 쌍봉 상태에서는 추가매수 금지 (직전 음봉 고점보다 높아진 눌림만 허용)
-            events.push({ i, t: b.t, type: 'buy', first: cur.n === 1, blocked: dt, level: prevBull.lo, price: b.c });
+            events.push({ i, t: b.t, type: 'buy', first: cur.n === 1, nth: pull, blocked: dt, level: prevBull.lo, price: b.c });
           }
         } else if (state === 'down' && prevBear && prevBull && cur.n === 1) {
           // 하락 가속 경고: 양봉이 직전 음봉 고점을 못 넘고(종가), 새 음봉이 그 고점보다 낮게 시작
@@ -102,6 +104,7 @@
       holdLine: null, holdLineNext: null,
       // 재진입/전환선: 양봉 종가가 넘어야 하는 선 = 직전 음봉블록 고점(진행 중이 음봉이면 그 블록 고점)
       breakLine: null,
+      upT: state === 'up' ? upT : null, upP: state === 'up' ? upP : null, pullNo: state === 'up' ? pull : 0,
       buyOK: false, firstBear: false, doubleTop: false, sellBounce: false, accel: false,
       events
     };
