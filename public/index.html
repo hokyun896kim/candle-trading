@@ -8,10 +8,12 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#FF6F0F">
+<meta name="theme-color" content="#F2F4F6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="캔들매매">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -19,7 +21,7 @@
 <header class="topbar">
   <img class="logo" src="/favicon.svg" alt="캔들매매">
   <h1>캔들매매</h1>
-  <span class="sub">색깔만 본다</span>
+  <span class="sub">빨강·파랑만 본다</span>
 </header>
 
 <!-- ================= 탭1: 개념 ================= -->
@@ -27,20 +29,16 @@
 <div class="wrap">
 
   <section class="card hero">
-    <div class="eyebrow" style="background:rgba(255,255,255,.22);color:#fff">비단길아카데미 · 캔들 단독</div>
-    <h2>이평선 없이, 빨강·파랑 두 색깔만으로 추세를 읽는다</h2>
+    <div class="eyebrow">비단길아카데미 캔들매매</div>
+    <div class="lead">이평선 없이,<br>빨강·파랑 두 색만으로 추세를 읽는다</div>
     <p>캔들은 이평선의 재료다. 이평선은 종가의 평균이라 캔들이 먼저 움직이고 선이 뒤따른다. 그래서 캔들매매는 이평선보다 '빠른 버전'이 아니라, 선이 생기기 전 원재료를 직접 읽는 방법이다.</p>
-    <div style="margin-top:10px">
-      <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">일봉·주봉·월봉 동일 규칙</span>
-      <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">종가로만 판정</span>
-      <span class="chip" style="background:rgba(255,255,255,.22);color:#fff">음봉에 사고 양봉에 판다</span>
-    </div>
+    <div class="chips" style="margin-top:12px"><span class="chip">일봉·주봉·월봉 같은 규칙</span><span class="chip">종가로만 판정</span><span class="chip">음봉에 사고 양봉에 판다</span></div>
   </section>
 
   <section class="card">
     <div class="eyebrow">STEP 0</div>
     <h2>합봉 — 연속 같은 색은 하나로</h2>
-    <p>양봉이 세 개 연달아 나오든 열 개 나오든 <b>하나의 양봉 블록</b>으로 본다. 블록의 고점은 꼬리까지 포함한 최고가, 저점은 꼬리까지 포함한 최저가. 음봉도 마찬가지. 판정은 전부 이 <b>블록</b> 단위로 한다.</p>
+    <p>양봉이 세 개 연달아 나오든 열 개 나오든 <b>하나의 양봉 묶음</b>으로 본다. 묶음의 고점은 꼬리까지 포함한 최고가, 저점은 꼬리까지 포함한 최저가. 음봉도 마찬가지. 판정은 전부 이 <b>묶음</b> 단위로 한다.</p>
     <div class="fig" id="fig-block"></div>
     <p>양봉·음봉 구분은 <b>오늘 시가 vs 오늘 종가</b>다. 전일 종가와는 상관없다. 시가와 종가가 같으면 양봉으로 친다.</p>
   </section>
@@ -48,7 +46,7 @@
   <section class="card">
     <div class="eyebrow">STEP 1</div>
     <h2>상승 시작 — 양봉이 음봉을 이긴다</h2>
-    <p>내려올 때는 음봉이 길고 양봉이 짧다. 양봉이 나와봐야 직전 음봉을 못 이긴다. 그러다 <b>양봉 종가가 직전 음봉 블록의 고점을 넘는 순간</b> 추세가 상승으로 바뀐다. 강사 표현으로 "양봉이 음봉을 잡아먹는다".</p>
+    <p>내려올 때는 음봉이 길고 양봉이 짧다. 양봉이 나와봐야 직전 음봉을 못 이긴다. 그러다 <b>양봉 종가가 직전 음봉 묶음의 고점을 넘는 순간</b> 추세가 상승으로 바뀐다. 강사 표현으로 "양봉이 음봉을 잡아먹는다".</p>
     <div class="fig" id="fig-gate"></div>
     <p>이 한 줄이 "지금부터 사도 된다"의 전부다. 바닥에서든 중턱에서든 상관없다. 양봉이 이긴 그 종가에 사도 되고, 그 뒤 음봉 나올 때 사도 된다.</p>
   </section>
@@ -65,9 +63,9 @@
   <section class="card">
     <div class="eyebrow">STEP 3</div>
     <h2>상승 끝 — 음봉이 양봉을 깬다, 그리고 양봉에 판다</h2>
-    <p><b>음봉 종가가 직전 양봉 블록 저점을 깨면</b> 추세가 하락으로 바뀐다. 매도 신호다. 그런데 그 음봉에 던지지 않는다. 음봉 다음엔 양봉이 한 번은 나온다. <b>그 양봉 반등에 판다.</b></p>
+    <p><b>음봉 종가가 직전 양봉 묶음 저점을 깨면</b> 추세가 하락으로 바뀐다. 매도 신호다. 그런데 그 음봉에 던지지 않는다. 음봉 다음엔 양봉이 한 번은 나온다. <b>그 양봉 반등에 판다.</b></p>
     <div class="fig" id="fig-sell"></div>
-    <p>하락 상태에서는 양봉이 나와도 직전 음봉 블록 고점을 넘지 못하면 그냥 반등이다. 그 양봉이 넘어서는 순간까지 <b>반등마다 매도</b>. 넘어서면 다시 STEP 1.</p>
+    <p>하락 상태에서는 양봉이 나와도 직전 음봉 묶음 고점을 넘지 못하면 그냥 반등이다. 그 양봉이 넘어서는 순간까지 <b>반등마다 매도</b>. 넘어서면 다시 STEP 1.</p>
     <div class="quote">"양봉 들어줄 때 안 팔면 골치 아파진다. 양봉보다 음봉이 커진 자리에서는 더 큰 음봉이 또 나온다고 알고 있어야 된다."</div>
   </section>
 
@@ -155,8 +153,9 @@
 <div class="wrap">
   <section class="card">
     <h2>종목 검증</h2>
-    <p>종목명이나 코드를 넣으면 일봉·주봉을 불러와 캔들 규칙으로 판정한다.</p>
+    <p style="margin-top:0">종목명이나 코드를 넣으면 월봉·주봉·일봉을 불러와 캔들 규칙으로 판정한다.</p>
     <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <input id="q" placeholder="삼성전자 또는 005930" autocomplete="off" inputmode="search">
       <div class="list" id="sugg" style="display:none"></div>
     </div>
@@ -171,26 +170,24 @@
 <main id="tab-scan" class="tab">
 <div class="wrap">
   <section class="card">
-    <h2>월봉 스캔 — 코스피 200 + 코스닥 150</h2>
-    <p>평일 장 마감 뒤 자동 갱신. 월봉만 보고 세 가지를 순서대로 — <b>🔥 양봉이 지난 음봉을 이기는 중</b>(시세 시작 직전) → <b>🎯 상승 중인데 이번 달 음봉</b>(사는 자리) → <b>⛔ 음봉이 지난 양봉을 깨는 중</b>(끝나기 직전). 월말 종가로 확정.</p>
-    <div id="scan-meta" class="note"></div>
+    <h2>월봉 스캔</h2>
+    <p style="margin-top:0">코스피 200 + 코스닥 150. 평일 장 마감 뒤 자동 갱신. 월봉만 보고 사는 쪽 두 가지(<b>양봉이 지난 음봉을 이기는 중</b>, <b>상승 중 이번 달 음봉</b>)와 끝나는 쪽 하나(<b>음봉이 지난 양봉을 깨는 중</b>)를 고른다. 월말 종가로 확정.</p>
     <div id="scan-kospi"></div>
-    <div class="seg" id="scan-seg" style="flex-wrap:wrap">
-      <button class="on" data-f="top">⭐ 추천순</button>
-      <button data-f="turn">🔥 양봉이 이기는 중</button>
-      <button data-f="buy">🎯 음봉 눌림</button>
-      <button data-f="end">⛔ 음봉이 깨는 중</button>
-      <button data-f="hold">상승 중</button>
-      <button data-f="all">전체</button>
+    <div class="chips" id="scan-seg" style="margin-top:14px">
+      <button class="chip on" data-f="top">추천순</button>
+      <button class="chip" data-f="turn">양봉이 이기는 중</button>
+      <button class="chip" data-f="buy">음봉 눌림</button>
+      <button class="chip" data-f="end">음봉이 깨는 중</button>
+      <button class="chip" data-f="hold">상승 중</button>
+      <button class="chip" data-f="all">전체</button>
     </div>
-    <div id="scan-note"></div>
-    <div style="display:flex;gap:6px;margin:4px 0 6px">
-      <span class="chip o" data-mk="ALL" style="cursor:pointer">전체 시장</span>
-      <span class="chip" data-mk="KOSPI" style="cursor:pointer">코스피</span>
-      <span class="chip" data-mk="KOSDAQ" style="cursor:pointer">코스닥</span>
+    <div class="seg" id="scan-mk" style="margin:12px 0 10px">
+      <button class="on" data-mk="ALL">전체 시장</button><button data-mk="KOSPI">코스피</button><button data-mk="KOSDAQ">코스닥</button>
     </div>
-    <input id="scan-q" placeholder="종목명 필터" style="width:100%;font-size:14px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);outline:none">
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="scan-q" placeholder="종목명으로 찾기" style="font-size:16px;padding:12px 14px 12px 46px"></div>
+    <div id="scan-meta" class="note"></div>
   </section>
+  <div id="scan-note"></div>
   <div id="scan-list"></div>
 </div>
 </main>
@@ -200,19 +197,19 @@
 <div class="wrap">
   <section class="card">
     <h2>지수·코인 — 잘 먹혔던 것만</h2>
-    <p>지금까지 돌려본 것 중에 캔들매매가 실제로 먹힌 네 개만 본다. <b>나스닥 월봉, 코스피 주봉·월봉, 비트코인 월봉, 이더리움 월봉.</b> ⭐ 붙은 쪽이 과거에 제일 좋았던 쪽이다.</p>
+    <p style="margin-top:0">지금까지 돌려본 것 중에 캔들매매가 실제로 먹힌 네 개만 본다. <b>나스닥 월봉, 코스피 주봉·월봉, 비트코인 월봉, 이더리움 월봉.</b> '잘 먹힌 쪽' 표시가 과거에 제일 좋았던 쪽이다.</p>
     <p><b>확률은 돈 벌 확률이 아니다.</b> 그 달(그 주) 봉이 끝나는 날 <b>산다/판다 신호가 나올 확률</b>이다. 남은 기간 동안 과거에 그만큼 움직인 적이 얼마나 있었나를 센 거라 대충 감 잡는 용도다.</p>
     <div id="mk-meta" class="note"></div>
   </section>
-  <div id="mk-list"><div class="card loading">불러오는 중…</div></div>
+  <div id="mk-list"><div class="card"><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div></div>
 </div>
 </main>
 
 <nav class="tabbar">
-  <button class="on" data-tab="concept"><span class="ic">📖</span>개념</button>
-  <button data-tab="verify"><span class="ic">🔎</span>검증</button>
-  <button data-tab="scan"><span class="ic">📡</span>스캔</button>
-  <button data-tab="markets"><span class="ic">🌏</span>지수·코인</button>
+  <button class="on" data-tab="concept"><svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/></svg>개념</button>
+  <button data-tab="verify"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>검증</button>
+  <button data-tab="scan"><svg viewBox="0 0 24 24"><path d="M7 4v16M17 4v16"/><rect x="5" y="8" width="4" height="7" rx="1"/><rect x="15" y="6" width="4" height="9" rx="1"/></svg>스캔</button>
+  <button data-tab="markets"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5z"/></svg>지수·코인</button>
 </nav>
 
 <script src="engine.js"></script>
