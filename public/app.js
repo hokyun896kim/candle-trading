@@ -124,6 +124,7 @@
     try {
       const isIdx = /^(KOSPI|KOSDAQ)$/.test(code);
       if (!name || name === code) name = /^(KOSPI|KOSDAQ)$/.test(code) ? (code === 'KOSDAQ' ? '코스닥' : '코스피') : await nameOf(code);
+      if (q.value.trim() === code) q.value = name;
       const [dB, wB, mB, kB] = await Promise.all([getBars(code, 'day'), getBars(code, 'week'), getBars(code, 'month'), isIdx ? null : getBars('KOSPI', 'month')]);
       const D = judge('day', dB), W = judge('week', wB), M = judge('month', mB);
       const K = kB ? judge('month', kB) : null;
